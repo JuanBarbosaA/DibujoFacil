@@ -24,7 +24,7 @@ namespace backend.Utilities
                 issuer: jwtIssuer,
                 audience: jwtAudience,
                 claims: claims,
-                expires: DateTime.Now.AddMinutes(1440),
+                expires: DateTime.UtcNow.AddHours(1),
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);

@@ -49,7 +49,6 @@ namespace backend.Controllers
                     return Unauthorized("Credenciales inválidas");
                 }
 
-                // Verificación de contraseña con soporte para ambos sistemas
                 var isPasswordValid = EncryptUtility.VerifyPassword(loginDto.Password, user.PasswordHash);
 
                 if (!isPasswordValid)
@@ -58,7 +57,6 @@ namespace backend.Controllers
                     return Unauthorized("Credenciales inválidas");
                 }
 
-                // Migrar a BCrypt si es un hash antiguo (SHA256)
                 if (!EncryptUtility.IsBCryptHash(user.PasswordHash))
                 {
                     try
@@ -81,6 +79,8 @@ namespace backend.Controllers
                     _configuration["JwtSettings:Key"],
                     _configuration["JwtSettings:Issuer"],
                     _configuration["JwtSettings:Audience"]);
+
+               
 
                 _logger.LogInformation("Login exitoso para el usuario: {Email}", loginDto.Email);
 
@@ -162,6 +162,17 @@ namespace backend.Controllers
             }
         }
 
+
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("jwt");
+            return Ok(new { Message = "Logout successful" });
+       
+        }
+
+
+
         [HttpGet("test-connection")]
         public IActionResult TestConnection()
         {
@@ -207,7 +218,6 @@ namespace backend.Controllers
     }
 }
 
-// Controlador protegido separado
 [Authorize]
 [Route("api/[controller]")]
 [ApiController]
