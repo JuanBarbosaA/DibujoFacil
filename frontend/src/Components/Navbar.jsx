@@ -7,6 +7,7 @@ export default function Navbar(){
             <Link to={"/dashboard"}>Dashboard</Link>
             <Link to={"/login"}>Login</Link>
             <Link to={"/register"}>Register</Link>
+            <Link to={"/profile"}>Profile</Link>
         </nav>
     )
 }

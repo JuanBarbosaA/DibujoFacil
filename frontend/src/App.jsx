@@ -5,6 +5,7 @@ import RegisterPage from "./pages/register/page";
 import DashboardPage from "./pages/dashboard/page";
 import HomePage from "./pages/Home/page";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import ProfilePage from "./pages/profile/page";
 
 export default function App() {
   return(
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage/>} />
         <Route path="/register" element={<RegisterPage/>} />
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage/></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><ProfilePage/></ProtectedRoute>} />
       </Routes>
     </Router>
   )

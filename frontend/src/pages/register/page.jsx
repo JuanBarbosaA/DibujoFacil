@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -15,7 +16,7 @@ export default function RegisterPage() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, name }),
     });
 
     if (!response.ok) {
@@ -32,6 +33,15 @@ export default function RegisterPage() {
     <div>
       <h2>Register</h2>
       <form onSubmit={handleSubmit}>
+        <div>
+          <label>Nombre</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+        </div>
         <div>
           <label>Email</label>
           <input

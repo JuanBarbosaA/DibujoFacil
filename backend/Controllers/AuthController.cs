@@ -110,6 +110,9 @@ namespace backend.Controllers
                 if (string.IsNullOrWhiteSpace(registerDto.Password))
                     return BadRequest("Contraseña es requerida");
 
+                if (string.IsNullOrWhiteSpace(registerDto.Name))
+                    return BadRequest("Nombre es requerido");
+
                 if (await _context.Users.AnyAsync(u => u.Email == registerDto.Email))
                     return Conflict("El email ya está registrado");
 
@@ -117,8 +120,8 @@ namespace backend.Controllers
                 {
                     Email = registerDto.Email,
                     PasswordHash = EncryptUtility.HashPassword(registerDto.Password),
-                    Name = registerDto.Email.Split('@')[0],
-                    RoleId = 2, 
+                    Name = registerDto.Name, 
+                    RoleId = 2,
                     RegistrationDate = DateTime.UtcNow,
                     Status = "active",
                     Points = 0
@@ -161,6 +164,7 @@ namespace backend.Controllers
                 });
             }
         }
+
 
 
         [HttpPost("logout")]
