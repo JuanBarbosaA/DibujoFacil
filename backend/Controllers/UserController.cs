@@ -22,7 +22,6 @@ namespace backend.Controllers
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-
             var user = _context.Users.FirstOrDefault(u => u.Email == userId);
 
             if (user == null)

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import Logout from '../../Components/logout';
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
@@ -10,7 +11,7 @@ useEffect(() => {
       const res = await fetch('http://localhost:5054/api/User/profile', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${token}`,                    
+          'Authorization': `Bearer ${token}`,              
           'Content-Type': 'application/json'
         }
       });
@@ -33,6 +34,8 @@ useEffect(() => {
       <h2>Welcome, {user.name || user.email}</h2>
       <p>Email: {user.email}</p>
       <p>User ID: {user.id}</p>
+
+      <Logout/>
     </div>
   );
 }

@@ -35,7 +35,7 @@ public partial class DbDibujofacilContext : DbContext
 
     public virtual DbSet<Role> Roles { get; set; }
 
-    public virtual DbSet<Tutorial> Tutorials { get; set; }
+    public virtual DbSet<Tutorial> Tutorial { get; set; }
 
     public virtual DbSet<TutorialContent> TutorialContents { get; set; }
 
