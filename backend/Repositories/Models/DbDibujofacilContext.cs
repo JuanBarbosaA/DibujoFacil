@@ -16,35 +16,44 @@ public partial class DbDibujofacilContext : DbContext
     }
 
     public virtual DbSet<Achievement> Achievements { get; set; }
-
     public virtual DbSet<Audit> Audits { get; set; }
-
     public virtual DbSet<Category> Categories { get; set; }
-
     public virtual DbSet<Comment> Comments { get; set; }
-
     public virtual DbSet<MinigameDrawing> MinigameDrawings { get; set; }
-
     public virtual DbSet<Notification> Notifications { get; set; }
-
     public virtual DbSet<OauthProvider> OauthProviders { get; set; }
-
     public virtual DbSet<OauthUser> OauthUsers { get; set; }
-
     public virtual DbSet<Rating> Ratings { get; set; }
-
     public virtual DbSet<Role> Roles { get; set; }
-
     public virtual DbSet<Tutorial> Tutorial { get; set; }
-
     public virtual DbSet<TutorialContent> TutorialContents { get; set; }
-
     public virtual DbSet<User> Users { get; set; }
-
     public virtual DbSet<UserAchievement> UserAchievements { get; set; }
+    public virtual DbSet<TutorialCategory> TutorialCategories { get; set; }
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<TutorialCategory>(entity =>
+        {
+            entity.HasKey(e => new { e.TutorialId, e.CategoryId });
+
+            entity.ToTable("tutorial_category"); 
+
+            entity.Property(e => e.TutorialId).HasColumnName("tutorial_id");
+            entity.Property(e => e.CategoryId).HasColumnName("category_id");
+
+            entity.HasOne(tc => tc.Tutorial)
+                .WithMany(t => t.TutorialCategories)
+                .HasForeignKey(tc => tc.TutorialId)
+                .HasConstraintName("FK_tutorial_category_tutorial");
+
+            entity.HasOne(tc => tc.Category)
+                .WithMany(c => c.TutorialCategories)
+                .HasForeignKey(tc => tc.CategoryId)
+                .HasConstraintName("FK_tutorial_category_category");
+        });
+
         modelBuilder.Entity<Achievement>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__achievem__3213E83F121C4DCE");
@@ -274,7 +283,7 @@ public partial class DbDibujofacilContext : DbContext
             entity.Property(e => e.Difficulty)
                 .HasMaxLength(20)
                 .IsUnicode(false)
-                .HasColumnName("difficulty");
+                .HasColumnName("Difficulty");
             entity.Property(e => e.EstimatedDuration).HasColumnName("estimated_duration");
             entity.Property(e => e.PublicationDate)
                 .HasDefaultValueSql("(getdate())")
@@ -295,24 +304,9 @@ public partial class DbDibujofacilContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__tutorial__author__37A5467C");
 
-            entity.HasMany(d => d.Categories).WithMany(p => p.Tutorials)
-                .UsingEntity<Dictionary<string, object>>(
-                    "TutorialCategory",
-                    r => r.HasOne<Category>().WithMany()
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("FK__tutorial___categ__571DF1D5"),
-                    l => l.HasOne<Tutorial>().WithMany()
-                        .HasForeignKey("TutorialId")
-                        .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("FK__tutorial___tutor__5629CD9C"),
-                    j =>
-                    {
-                        j.HasKey("TutorialId", "CategoryId").HasName("PK__tutorial__D0122BBD9F0B60C0");
-                        j.ToTable("tutorial_category");
-                        j.IndexerProperty<int>("TutorialId").HasColumnName("tutorial_id");
-                        j.IndexerProperty<int>("CategoryId").HasColumnName("category_id");
-                    });
+            entity.HasMany(t => t.TutorialCategories)
+                .WithOne(tc => tc.Tutorial)
+                .HasForeignKey(tc => tc.TutorialId);
         });
 
         modelBuilder.Entity<TutorialContent>(entity =>

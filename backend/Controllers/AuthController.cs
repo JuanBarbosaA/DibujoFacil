@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace backend.Controllers
 {
@@ -74,13 +75,12 @@ namespace backend.Controllers
                 }
 
                 var token = JwtUtility.GenerateToken(
-                    user.Email,
-                    user.Id.ToString(),
-                    _configuration["JwtSettings:Key"],
-                    _configuration["JwtSettings:Issuer"],
-                    _configuration["JwtSettings:Audience"]);
-
-               
+                    email: user.Email,
+                    userId: user.Id,
+                    jwtKey: _configuration["JwtSettings:Key"],
+                    jwtIssuer: _configuration["JwtSettings:Issuer"],
+                    jwtAudience: _configuration["JwtSettings:Audience"]);
+     
 
                 _logger.LogInformation("Login exitoso para el usuario: {Email}", loginDto.Email);
 
@@ -131,11 +131,11 @@ namespace backend.Controllers
                 await _context.SaveChangesAsync();
 
                 var token = JwtUtility.GenerateToken(
-                    user.Email,
-                    user.Id.ToString(),
-                    _configuration["JwtSettings:Key"],
-                    _configuration["JwtSettings:Issuer"],
-                    _configuration["JwtSettings:Audience"]);
+                    email: user.Email,
+                    userId: user.Id,
+                    jwtKey: _configuration["JwtSettings:Key"],
+                    jwtIssuer: _configuration["JwtSettings:Issuer"],
+                    jwtAudience: _configuration["JwtSettings:Audience"]);
 
                 return Ok(new AuthResponseDto
                 {
@@ -222,21 +222,31 @@ namespace backend.Controllers
     }
 }
 
+
 [Authorize]
 [Route("api/[controller]")]
 [ApiController]
 public class ProtectedController : ControllerBase
 {
-    [HttpGet]
-    public IActionResult Get()
+    private readonly DbDibujofacilContext _context;
+
+    public ProtectedController(DbDibujofacilContext context)
     {
+        _context = context;
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Get()
+    {
+        var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+        var user = await _context.Users.FindAsync(userId);
+
         return Ok(new
         {
             Message = "Este es un endpoint protegido",
-            Usuario = User.Identity.Name,
+            Usuario = user?.Name, 
+            Email = User.Identity.Name, 
             Fecha = DateTime.UtcNow
         });
     }
-
-
 }

@@ -5,9 +5,9 @@
         public int Id { get; set; }
         public string Title { get; set; }
         public string Description { get; set; }
-        public string Difficulty { get; set; }
-        public int? EstimatedDuration { get; set; }
-        public DateTime? PublicationDate { get; set; }
+        public string Difficulty { get; set; } 
+        public int? EstimatedDuration { get; set; } 
+        public DateTime? PublicationDate { get; set; } 
         public string Status { get; set; }
         public UserDto Author { get; set; }
         public List<CategoryDto> Categories { get; set; }

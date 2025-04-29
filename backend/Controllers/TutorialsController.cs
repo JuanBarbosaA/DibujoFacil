@@ -1,7 +1,9 @@
 ﻿using backend.Dtos;
 using backend.Repositories.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace backend.Controllers
 {
@@ -10,10 +12,14 @@ namespace backend.Controllers
     public class TutorialsController : ControllerBase
     {
         private readonly DbDibujofacilContext _context;
+        private readonly ILogger<TutorialsController> _logger;
 
-        public TutorialsController(DbDibujofacilContext context)
+        public TutorialsController(
+            DbDibujofacilContext context,
+            ILogger<TutorialsController> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         [HttpGet]
@@ -23,7 +29,8 @@ namespace backend.Controllers
             {
                 var tutorials = await _context.Tutorial
                     .Include(t => t.Author)
-                    .Include(t => t.Categories)
+                    .Include(t => t.TutorialCategories)
+                        .ThenInclude(tc => tc.Category)  
                     .Include(t => t.TutorialContents)
                     .Include(t => t.Comments)
                         .ThenInclude(c => c.User)
@@ -48,11 +55,12 @@ namespace backend.Controllers
                         Email = t.Author.Email,
                         AvatarUrl = t.Author.AvatarUrl
                     },
-                    Categories = t.Categories.Select(c => new CategoryDto
-                    {
-                        Id = c.Id,
-                        Name = c.Name
-                    }).ToList(),
+                    Categories = t.TutorialCategories  
+                        .Select(tc => new CategoryDto
+                        {
+                            Id = tc.Category.Id,
+                            Name = tc.Category.Name
+                        }).ToList(),
                     Contents = t.TutorialContents.Select(tc => new TutorialContentDto
                     {
                         Id = tc.Id,
@@ -86,16 +94,124 @@ namespace backend.Controllers
                             Name = r.User.Name
                         }
                     }).ToList(),
-                    AverageRating = t.Ratings.Any() ? (double)t.Ratings.Average(r => r.Score) : 0
+                    AverageRating = t.Ratings.Any()
+                        ? (double)t.Ratings.Average(r => r.Score)
+                        : 0
                 }).ToList();
 
                 return Ok(tutorialDtos);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error obteniendo tutoriales");
                 return StatusCode(500, new
                 {
                     Message = "Error al obtener los tutoriales",
+                    Error = ex.Message
+                });
+            }
+        }
+
+        [Authorize]
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateTutorial(
+            [FromForm] TutorialCreationDto tutorialDto)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+                var existingCategories = await _context.Categories
+                    .Where(c => tutorialDto.CategoryIds.Contains(c.Id))
+                    .Select(c => c.Id)
+                    .ToListAsync();
+
+                if (existingCategories.Count != tutorialDto.CategoryIds?.Count)
+                    return BadRequest("Una o más categorías no existen");
+
+                var tutorial = new Tutorial
+                {
+                    Title = tutorialDto.Title,
+                    Description = tutorialDto.Description,
+                    Difficulty = tutorialDto.Difficulty,
+                    EstimatedDuration = tutorialDto.EstimatedDuration,
+                    AuthorId = userId,
+                    PublicationDate = DateTime.UtcNow,
+                    Status = "pending",
+                    TutorialCategories = new List<TutorialCategory>()  
+                };
+
+                await _context.Tutorial.AddAsync(tutorial);
+                await _context.SaveChangesAsync();
+
+                foreach (var contentDto in tutorialDto.Contents)
+                {
+                    using var memoryStream = new MemoryStream();
+                    await contentDto.File.CopyToAsync(memoryStream);
+
+                    _context.TutorialContents.Add(new TutorialContent
+                    {
+                        TutorialId = tutorial.Id,
+                        Type = contentDto.File.ContentType, 
+                        Content = memoryStream.ToArray(),
+                        Order = contentDto.Order,
+                        Title = contentDto.Title,
+                        Description = contentDto.Description
+                    });
+                }
+
+                var tutorialCategories = tutorialDto.CategoryIds.Select(cId =>
+                    new TutorialCategory
+                    {
+                        TutorialId = tutorial.Id,
+                        CategoryId = cId
+                    });
+
+                await _context.TutorialCategories.AddRangeAsync(tutorialCategories);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return CreatedAtAction(nameof(GetTutorials), new
+                {
+                    Message = "Tutorial creado exitosamente",
+                    TutorialId = tutorial.Id
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error creando tutorial");
+                return StatusCode(500, new
+                {
+                    Message = "Error interno del servidor",
+                    Error = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetCategories()
+        {
+            try
+            {
+                var categories = await _context.Categories
+                    .AsNoTracking()
+                    .Select(c => new CategoryDto
+                    {
+                        Id = c.Id,
+                        Name = c.Name
+                    })
+                    .ToListAsync();
+
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo categorías");
+                return StatusCode(500, new
+                {
+                    Message = "Error al obtener categorías",
                     Error = ex.Message
                 });
             }

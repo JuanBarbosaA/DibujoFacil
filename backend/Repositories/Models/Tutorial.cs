@@ -32,4 +32,6 @@ public partial class Tutorial
     public virtual ICollection<TutorialContent> TutorialContents { get; set; } = new List<TutorialContent>();
 
     public virtual ICollection<Category> Categories { get; set; } = new List<Category>();
+
+    public ICollection<TutorialCategory> TutorialCategories { get; set; }
 }

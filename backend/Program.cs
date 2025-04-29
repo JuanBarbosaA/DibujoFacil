@@ -12,13 +12,11 @@ builder.Services.AddControllers();
 
 builder.Services.AddCors(opt => {
     opt.AddPolicy("AllowReactApp", policy => {
-        policy.WithOrigins("http://localhost:5173")    
+        policy.WithOrigins("http://localhost:5173")
               .AllowAnyMethod()
-              .AllowAnyHeader();                       
+              .AllowAnyHeader();
     });
 });
-
-
 
 builder.Services.AddDbContext<DbDibujofacilContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -45,16 +43,15 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         ValidateLifetime = true,
         ClockSkew = TimeSpan.Zero,
-        NameClaimType = ClaimTypes.Name,
+        NameClaimType = ClaimTypes.Email,
         RoleClaimType = ClaimTypes.Role
     };
 });
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new() { Title = "backend", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "DibujoFácil API", Version = "v1" });
 
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -82,6 +79,8 @@ builder.Services.AddSwaggerGen(c =>
             new List<string>()
         }
     });
+
+    c.OperationFilter<SwaggerFileUploadFilter>();
 });
 
 var app = builder.Build();
@@ -93,12 +92,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseCors("AllowReactApp");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();

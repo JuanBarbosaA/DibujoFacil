@@ -1,23 +1,29 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using backend.Repositories.Models;
 using Microsoft.IdentityModel.Tokens;
 
 namespace backend.Utilities
 {
     public static class JwtUtility
     {
-        public static string GenerateToken(string email, string userId, string jwtKey, string jwtIssuer, string jwtAudience)
+        public static string GenerateToken(
+            int userId,  
+            string email,
+            string jwtKey,
+            string jwtIssuer,
+            string jwtAudience)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
 
             var claims = new[]
-{
-                new Claim(JwtRegisteredClaimNames.Sub, email),
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),  
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(ClaimTypes.NameIdentifier, userId),
-                new Claim(ClaimTypes.Name, email)
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.Email, email)  
             };
 
             var token = new JwtSecurityToken(
@@ -30,4 +36,5 @@ namespace backend.Utilities
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
+
 }

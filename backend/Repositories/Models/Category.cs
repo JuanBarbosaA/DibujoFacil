@@ -10,4 +10,6 @@ public partial class Category
     public string Name { get; set; } = null!;
 
     public virtual ICollection<Tutorial> Tutorials { get; set; } = new List<Tutorial>();
+
+    public ICollection<TutorialCategory> TutorialCategories { get; set; }
 }
