@@ -6,6 +6,7 @@ import HomePage from "./pages/Home/page";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import ProfilePage from "./pages/profile/page";
 import CreateTutorialPage from "./pages/createTutorial/page";
+import TutorialPage from "./pages/tutorial/page";
 import '../tailwind-input.css';
 
 export default function App() {
@@ -18,6 +19,7 @@ export default function App() {
         <Route path="/dashboard" element={<ProtectedRoute><DashboardPage/></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><ProfilePage/></ProtectedRoute>} />
         <Route path="/createTutorial" element={<ProtectedRoute><CreateTutorialPage/></ProtectedRoute>} />
+        <Route path="/tutorial/:id" element={<TutorialPage/>}/>
       </Routes>
     </Router>
   )

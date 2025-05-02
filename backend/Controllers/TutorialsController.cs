@@ -30,7 +30,7 @@ namespace backend.Controllers
                 var tutorials = await _context.Tutorial
                     .Include(t => t.Author)
                     .Include(t => t.TutorialCategories)
-                        .ThenInclude(tc => tc.Category)  
+                        .ThenInclude(tc => tc.Category)
                     .Include(t => t.TutorialContents)
                     .Include(t => t.Comments)
                         .ThenInclude(c => c.User)
@@ -55,7 +55,7 @@ namespace backend.Controllers
                         Email = t.Author.Email,
                         AvatarUrl = t.Author.AvatarUrl
                     },
-                    Categories = t.TutorialCategories  
+                    Categories = t.TutorialCategories
                         .Select(tc => new CategoryDto
                         {
                             Id = tc.Category.Id,
@@ -86,7 +86,7 @@ namespace backend.Controllers
                     Ratings = t.Ratings.Select(r => new RatingDto
                     {
                         Id = r.Id,
-                        Score = r.Score,
+                        Score = r.Score.Value,
                         Date = r.Date,
                         User = new UserDto
                         {
@@ -139,7 +139,7 @@ namespace backend.Controllers
                     AuthorId = userId,
                     PublicationDate = DateTime.UtcNow,
                     Status = "pending",
-                    TutorialCategories = new List<TutorialCategory>()  
+                    TutorialCategories = new List<TutorialCategory>()
                 };
 
                 await _context.Tutorial.AddAsync(tutorial);
@@ -153,7 +153,7 @@ namespace backend.Controllers
                     _context.TutorialContents.Add(new TutorialContent
                     {
                         TutorialId = tutorial.Id,
-                        Type = contentDto.File.ContentType, 
+                        Type = contentDto.File.ContentType,
                         Content = memoryStream.ToArray(),
                         Order = contentDto.Order,
                         Title = contentDto.Title,
@@ -216,5 +216,151 @@ namespace backend.Controllers
                 });
             }
         }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetTutorialById(int id)
+        {
+            try
+            {
+                var tutorial = await _context.Tutorial
+                    .Include(t => t.Author)
+                    .Include(t => t.TutorialCategories)
+                        .ThenInclude(tc => tc.Category)
+                    .Include(t => t.TutorialContents)
+                    .Include(t => t.Comments)
+                        .ThenInclude(c => c.User)
+                    .Include(t => t.Ratings)
+                        .ThenInclude(r => r.User)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == id);
+
+                if (tutorial == null)
+                {
+                    return NotFound("Tutorial no encontrado");
+                }
+
+                var tutorialDto = new TutorialFullDto
+                {
+                    Id = tutorial.Id,
+                    Title = tutorial.Title,
+                    Description = tutorial.Description,
+                    Difficulty = tutorial.Difficulty,
+                    EstimatedDuration = tutorial.EstimatedDuration,
+                    PublicationDate = tutorial.PublicationDate,
+                    Status = tutorial.Status,
+                    Author = new UserDto
+                    {
+                        Id = tutorial.Author.Id,
+                        Name = tutorial.Author.Name,
+                        Email = tutorial.Author.Email,
+                        AvatarUrl = tutorial.Author.AvatarUrl
+                    },
+                    Categories = tutorial.TutorialCategories
+                        .Select(tc => new CategoryDto
+                        {
+                            Id = tc.Category.Id,
+                            Name = tc.Category.Name
+                        }).ToList(),
+                    Contents = tutorial.TutorialContents.Select(tc => new TutorialContentDto
+                    {
+                        Id = tc.Id,
+                        Type = tc.Type,
+                        ContentBase64 = Convert.ToBase64String(tc.Content),
+                        Order = tc.Order,
+                        Description = tc.Description,
+                        Title = tc.Title
+                    }).OrderBy(tc => tc.Order).ToList(),
+                    Comments = tutorial.Comments.Select(c => new CommentDto
+                    {
+                        Id = c.Id,
+                        Text = c.Comment1,
+                        Date = c.Date,
+                        Edited = c.Edited,
+                        User = new UserDto
+                        {
+                            Id = c.User.Id,
+                            Name = c.User.Name,
+                            AvatarUrl = c.User.AvatarUrl
+                        }
+                    }).ToList(),
+                    Ratings = tutorial.Ratings.Select(r => new RatingDto
+                    {
+                        Id = r.Id,
+                        Score = r.Score.Value,
+                        Date = r.Date,
+                        User = new UserDto
+                        {
+                            Id = r.User.Id,
+                            Name = r.User.Name
+                        }
+                    }).ToList(),
+                    AverageRating = tutorial.Ratings.Any()
+                        ? (double)tutorial.Ratings.Average(r => r.Score)
+                        : 0
+                };
+
+                return Ok(tutorialDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo tutorial");
+                return StatusCode(500, new
+                {
+                    Message = "Error al obtener el tutorial",
+                    Error = ex.Message
+                });
+            }
+        }
+
+
+
+        [Authorize]
+        [HttpPost("{id}/rate")]
+        public async Task<IActionResult> RateTutorial(int id, [FromBody] RatingCreationDto ratingDto)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+                var existingRating = await _context.Ratings
+                    .FirstOrDefaultAsync(r => r.TutorialId == id && r.UserId == userId);
+
+                if (existingRating != null)
+                {
+                    return Conflict("Ya has calificado este tutorial");
+                }
+
+                var rating = new Rating
+                {
+                    TutorialId = id,
+                    UserId = userId,
+                    Score = ratingDto.Score,
+                    Date = DateTime.UtcNow
+                };
+
+                _context.Ratings.Add(rating);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new
+                {
+                    Message = "Calificación registrada exitosamente",
+                    RatingId = rating.Id
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error registrando calificación");
+                return StatusCode(500, new
+                {
+                    Message = "Error al calificar el tutorial",
+                    Error = ex.Message
+                });
+            }
+        }
+
+
     }
 }

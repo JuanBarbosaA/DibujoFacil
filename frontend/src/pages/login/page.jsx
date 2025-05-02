@@ -24,6 +24,8 @@ export default function LoginPage() {
     } else {
       const data = await response.json();
       localStorage.setItem('token', data.token); 
+      localStorage.setItem('userId', data.userId); 
+      localStorage.setItem('userEmail', data.email);
       navigate('/dashboard'); 
     }
   };
@@ -56,3 +58,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

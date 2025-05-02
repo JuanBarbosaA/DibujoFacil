@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 export default function DashboardPage() {
     const [tutorials, setTutorials] = useState([])
@@ -87,67 +88,71 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {tutorials.map(tutorial => (
                     <article key={tutorial.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                    
+                        <Link to={`/tutorial/${tutorial.id}`} className="block hover:no-underline">
                         <header className="p-4 border-b">
-                            <h2 className="text-xl font-semibold text-gray-800">{tutorial.title}</h2>
-                            <div className="flex items-center mt-2">
-                                <img 
-                                    src={tutorial.author.avatarUrl || '/default-avatar.png'}
-                                    alt={`Avatar de ${tutorial.author.name}`}
-                                    className="w-8 h-8 rounded-full mr-2 object-cover"
-                                />
-                                <span className="text-sm text-gray-600">{tutorial.author.name}</span>
-                            </div>
-                        </header>
+                        <h2 className="text-xl font-semibold text-gray-800">{tutorial.title}</h2>
+                        <div className="flex items-center mt-2">
+                            <img 
+                                src={tutorial.author.avatarUrl || '/default-avatar.png'}
+                                alt={`Avatar de ${tutorial.author.name}`}
+                                className="w-8 h-8 rounded-full mr-2 object-cover"
+                            />
+                            <span className="text-sm text-gray-600">{tutorial.author.name}</span>
+                        </div>
+                    </header>
 
-                        <div className="p-4 space-y-2">
-                            <div className="flex items-center justify-between">
-                                <span className={`px-2 py-1 text-sm rounded-full ${
-                                    tutorial.difficulty === 'beginner' ? 'bg-green-100 text-green-800' :
-                                    tutorial.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-red-100 text-red-800'
-                                }`}>
-                                    {tutorial.difficulty}
+                    <div className="p-4 space-y-2">
+                        <div className="flex items-center justify-between">
+                            <span className={`px-2 py-1 text-sm rounded-full ${
+                                tutorial.difficulty === 'beginner' ? 'bg-green-100 text-green-800' :
+                                tutorial.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                                'bg-red-100 text-red-800'
+                            }`}>
+                                {tutorial.difficulty}
+                            </span>
+                            <div className="flex items-center">
+                                <span className="text-yellow-500">★</span>
+                                <span className="ml-1 text-gray-600">
+                                    {tutorial.averageRating.toFixed(1)}
                                 </span>
-                                <div className="flex items-center">
-                                    <span className="text-yellow-500">★</span>
-                                    <span className="ml-1 text-gray-600">
-                                        {tutorial.averageRating.toFixed(1)}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="text-sm text-gray-500">
-                                ⌛ {tutorial.estimatedDuration} minutos
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                                {tutorial.categories.map(category => (
-                                    <span 
-                                        key={category.id}
-                                        className="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full"
-                                    >
-                                        #{category.name}
-                                    </span>
-                                ))}
                             </div>
                         </div>
 
-                        {/* Sección de contenidos modificada */}
-                        <div className="grid grid-cols-1 gap-4 p-4 bg-gray-50">
-                            {tutorial.contents
-                                .sort((a, b) => a.order - b.order)
-                                .map(renderMediaContent)}
+                        <div className="text-sm text-gray-500">
+                            ⌛ {tutorial.estimatedDuration} minutos
                         </div>
 
-                        <footer className="p-4 border-t">
-                            <div className="text-sm text-gray-500">
-                                📅 Publicado el {new Date(tutorial.publicationDate).toLocaleDateString('es-ES', {
-                                    year: 'numeric',
-                                    month: 'long',
-                                    day: 'numeric'
-                                })}
-                            </div>
-                        </footer>
+                        <div className="flex flex-wrap gap-2">
+                            {tutorial.categories.map(category => (
+                                <span 
+                                    key={category.id}
+                                    className="px-2 py-1 bg-gray-100 text-gray-600 text-sm rounded-full"
+                                >
+                                    #{category.name}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Sección de contenidos modificada */}
+                    <div className="grid grid-cols-1 gap-4 p-4 bg-gray-50">
+                        {tutorial.contents
+                            .sort((a, b) => a.order - b.order)
+                            .map(renderMediaContent)}
+                    </div>
+
+                    <footer className="p-4 border-t">
+                        <div className="text-sm text-gray-500">
+                            📅 Publicado el {new Date(tutorial.publicationDate).toLocaleDateString('es-ES', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            })}
+                        </div>
+                    </footer>
+                        </Link>
+
                     </article>
                 ))}
             </div>
