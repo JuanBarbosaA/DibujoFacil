@@ -3,7 +3,12 @@ using backend.Repositories.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Metadata;
 using System.Security.Claims;
+using static System.Net.Mime.MediaTypeNames;
+using System.Xml.Linq;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
 
 namespace backend.Controllers
 {
@@ -361,6 +366,164 @@ namespace backend.Controllers
             }
         }
 
+
+        [Authorize]
+        [HttpPost("{id}/comment")]
+        public async Task<IActionResult> AddComment(int id, [FromBody] CommentCreationDto commentDto)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+                var tutorialExists = await _context.Tutorial.AnyAsync(t => t.Id == id);
+                if (!tutorialExists)
+                {
+                    return NotFound("Tutorial no encontrado");
+                }
+
+                var comment = new Comment
+                {
+                    TutorialId = id,
+                    UserId = userId,
+                    Comment1 = commentDto.Text,
+                    Date = DateTime.UtcNow,
+                    Edited = false
+                };
+
+                _context.Comments.Add(comment);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var user = await _context.Users
+                    .AsNoTracking()
+                    .Select(u => new UserDto
+                    {
+                        Id = u.Id,
+                        Name = u.Name,
+                        AvatarUrl = u.AvatarUrl
+                    })
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+
+                return CreatedAtAction(nameof(GetTutorialById), new { id }, new CommentDto
+                {
+                    Id = comment.Id,
+                    Text = comment.Comment1,
+                    Date = comment.Date,
+                    Edited = comment.Edited,
+                    User = user
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error agregando comentario");
+                return StatusCode(500, new
+                {
+                    Message = "Error al agregar el comentario",
+                    Error = ex.Message
+                });
+            }
+        }
+
+        [HttpGet("{id}/comments")]
+        public async Task<IActionResult> GetPaginatedComments(
+            int id,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 4)
+             {
+                try
+                    {
+                        var query = _context.Comments
+                            .Where(c => c.TutorialId == id)
+                            .Include(c => c.User)
+                            .OrderByDescending(c => c.Date);
+
+                        var totalComments = await query.CountAsync();
+                        var comments = await query
+                                .Skip((page - 1) * pageSize)
+                        .Take(pageSize)
+                        .Select(c => new CommentDto
+                        {
+                            Id = c.Id,
+                            Text = c.Comment1,
+                            Date = c.Date,
+                            Edited = c.Edited,
+                            User = new UserDto
+                            {
+                                Id = c.User.Id,
+                                Name = c.User.Name,
+                                AvatarUrl = c.User.AvatarUrl
+                            }
+                        })
+                        .ToListAsync();
+
+                    return Ok(new
+                    {
+                        Comments = comments,
+                        TotalComments = totalComments,
+                        CurrentPage = page,
+                        TotalPages = (int)Math.Ceiling(totalComments / (double)pageSize),
+                        HasMore = page * pageSize < totalComments
+                    });
+            }
+            catch (Exception ex)
+            {
+                 _logger.LogError(ex, "Error obteniendo comentarios paginados");
+                 return StatusCode(500, "Error interno del servidor");
+             }
+        }
+
+
+        [HttpGet("download-pdf/{tutorialId}")]
+        public async Task<IActionResult> DownloadTutorialPdf(int tutorialId)
+        {
+            try
+            {
+                var tutorial = await _context.Tutorial
+                    .Include(t => t.TutorialContents)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == tutorialId);
+
+                if (tutorial == null) return NotFound("Tutorial no encontrado");
+
+                using var memoryStream = new MemoryStream();
+                var document = new iTextSharp.text.Document(PageSize.A4, 25, 25, 30, 30);
+                var writer = PdfWriter.GetInstance(document, memoryStream);
+
+                document.Open();
+
+                document.AddTitle(tutorial.Title);
+                document.AddCreator("DibujoFácil");
+
+                var orderedContents = tutorial.TutorialContents
+                    .OrderBy(c => c.Order)
+                    .ToList();
+
+                foreach (var content in orderedContents)
+                {
+                    if (content.Type.StartsWith("image/"))
+                    {
+                        using var imageStream = new MemoryStream(content.Content);
+                        var image = iTextSharp.text.Image.GetInstance(imageStream);
+                        image.Alignment = Element.ALIGN_CENTER;
+                        image.ScaleToFit(document.PageSize.Width - 50, document.PageSize.Height - 50);
+                        document.Add(image);
+                        document.NewPage();
+                    }
+                }
+
+                document.Close();
+
+                return File(memoryStream.ToArray(), "application/pdf",
+                    $"{tutorial.Title.Replace(" ", "_")}.pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generando PDF para tutorial {TutorialId}", tutorialId);
+                return StatusCode(500, "Error generando el PDF");
+            }
+        }
 
     }
 }

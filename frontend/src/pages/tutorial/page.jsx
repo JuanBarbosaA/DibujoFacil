@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import CommentSection from '../../Components/CommentSection';
+import DownloadPdfButton from '../../Components/DownloadPdfButton';
 
 export default function TutorialPage() {
     const { id } = useParams();
@@ -12,12 +14,14 @@ export default function TutorialPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const fetchTutorialData = async () => {
-        
+        try {
             const response = await fetch(`http://localhost:5054/api/Tutorials/${id}`);
             if (!response.ok) throw new Error('Error al cargar el tutorial');
             const data = await response.json();
             return data;
-  
+        } catch (error) {
+            throw new Error('Error al obtener los datos del tutorial', error);
+        }
     };
 
     const checkUserRating = (ratings) => {
@@ -57,6 +61,7 @@ export default function TutorialPage() {
         }
     };
 
+    
     useEffect(() => {
         const loadData = async () => {
             try {
@@ -84,34 +89,29 @@ export default function TutorialPage() {
                 </h3>
                 
                 <div className="flex items-center gap-4">
-                <div className="flex gap-3">
-                {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                        key={star}
-                        className={`relative text-4xl transition-all duration-200 ${
-                            isLoggedIn && !hasRated ? 
-                            'cursor-pointer hover:scale-110' : 'cursor-default'
-                        } ${
-                            (hoverRating >= star || selectedRating >= star) ? 
-                            'text-yellow-500 drop-shadow-star' : 'text-gray-200'
-                        }`}
-                        onMouseEnter={() => !hasRated && isLoggedIn && setHoverRating(star)}
-                        onMouseLeave={() => !hasRated && isLoggedIn && setHoverRating(0)}
-                        onClick={() => !hasRated && isLoggedIn && setSelectedRating(star)}
-                        disabled={hasRated || !isLoggedIn}
-                    >
-                        {/* Estrella con efecto de brillo */}
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-40 transition-opacity">
-                            <div className="absolute inset-0 bg-yellow-200 blur-[12px]"></div>
-                        </div>
-                        
-                        {/* Estrella principal */}
-                        <div className="relative">
-                            ★
-                        </div>
-                    </button>
-                ))}
-            </div>
+                    <div className="flex gap-3">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                                key={star}
+                                className={`relative text-4xl transition-all duration-200 ${
+                                    isLoggedIn && !hasRated ? 
+                                    'cursor-pointer hover:scale-110' : 'cursor-default'
+                                } ${
+                                    (hoverRating >= star || selectedRating >= star) ? 
+                                    'text-yellow-500 drop-shadow-star' : 'text-gray-200'
+                                }`}
+                                onMouseEnter={() => !hasRated && isLoggedIn && setHoverRating(star)}
+                                onMouseLeave={() => !hasRated && isLoggedIn && setHoverRating(0)}
+                                onClick={() => !hasRated && isLoggedIn && setSelectedRating(star)}
+                                disabled={hasRated || !isLoggedIn}
+                            >
+                                <div className="absolute inset-0 opacity-0 group-hover:opacity-40 transition-opacity">
+                                    <div className="absolute inset-0 bg-yellow-200 blur-[12px]"></div>
+                                </div>
+                                <div className="relative">★</div>
+                            </button>
+                        ))}
+                    </div>
 
                     {!isLoggedIn && (
                         <p className="text-gray-600 text-sm">
@@ -135,11 +135,7 @@ export default function TutorialPage() {
 
                 {hasRated && (
                     <p className="mt-4 text-green-600 flex items-center">
-                        <svg 
-                            className="w-5 h-5 mr-2" 
-                            fill="currentColor" 
-                            viewBox="0 0 20 20"
-                        >
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                         </svg>
                         ¡Gracias por tu calificación!
@@ -148,11 +144,7 @@ export default function TutorialPage() {
 
                 {ratingError && (
                     <p className="mt-4 text-red-600 flex items-center">
-                        <svg 
-                            className="w-5 h-5 mr-2" 
-                            fill="currentColor" 
-                            viewBox="0 0 20 20"
-                        >
+                        <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path
                                 fillRule="evenodd"
                                 d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -165,6 +157,11 @@ export default function TutorialPage() {
             </div>
         );
     };
+
+    
+
+   
+
 
     if (loading) {
         return (
@@ -197,28 +194,14 @@ export default function TutorialPage() {
 
     return (
         <div className="container mx-auto px-4 py-8 max-w-4xl">
-            <Link
-                to="/"
-                className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6"
-            >
-                <svg 
-                    className="w-5 h-5 mr-2" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                >
-                    <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M10 19l-7-7m0 0l7-7m-7 7h18"
-                    />
+            <Link to="/" className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 Volver a todos los tutoriales
             </Link>
 
             <article>
-                {/* Header */}
                 <header className="mb-8">
                     <h1 className="text-4xl font-bold text-gray-900 mb-4">{tutorial.title}</h1>
                     <div className="flex items-center gap-4">
@@ -240,7 +223,6 @@ export default function TutorialPage() {
                     </div>
                 </header>
 
-                {/* Metadata */}
                 <div className="bg-gray-50 p-6 rounded-xl mb-8 shadow-sm">
                     <div className="flex flex-wrap gap-4 items-center mb-4">
                         <span className={`px-4 py-2 rounded-full font-medium ${
@@ -271,11 +253,11 @@ export default function TutorialPage() {
                         ))}
                     </div>
                 </div>
-
-                {/* Rating Section */}
+                
+                <DownloadPdfButton />
+                
                 <RatingSection />
 
-                {/* Tutorial Content */}
                 <section className="prose max-w-none mb-12">
                     <p className="text-lg text-gray-600 leading-relaxed">{tutorial.description}</p>
 
@@ -297,42 +279,11 @@ export default function TutorialPage() {
                         </div>
                     ))}
                 </section>
+   
 
-                {/* Comments */}
-                <section className="border-t pt-8">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                        💬 Comentarios ({tutorial.comments.length})
-                    </h2>
-
-                    {tutorial.comments.length > 0 ? (
-                        tutorial.comments.map(comment => (
-                            <div key={comment.id} className="mb-6 bg-gray-50 p-5 rounded-xl">
-                                <div className="flex items-center gap-4 mb-4">
-                                    <img
-                                        src={comment.user.avatarUrl || '/default-avatar.png'}
-                                        alt={comment.user.name}
-                                        className="w-10 h-10 rounded-full"
-                                    />
-                                    <div>
-                                        <p className="font-medium text-gray-900">{comment.user.name}</p>
-                                        <p className="text-sm text-gray-500">
-                                            {new Date(comment.date).toLocaleDateString('es-ES', {
-                                                day: 'numeric',
-                                                month: 'short',
-                                                year: 'numeric'
-                                            })}
-                                        </p>
-                                    </div>
-                                </div>
-                                <p className="text-gray-700">{comment.text}</p>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="text-center py-8 text-gray-500">
-                            Aún no hay comentarios. ¡Sé el primero en opinar!
-                        </div>
-                    )}
-                </section>
+                <CommentSection tutorialId={id} />
+                
+             
             </article>
         </div>
     );

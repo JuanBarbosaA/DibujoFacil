@@ -15,5 +15,6 @@
         public List<CommentDto> Comments { get; set; }
         public List<RatingDto> Ratings { get; set; }
         public double AverageRating { get; set; }
+        public bool HasImages => Contents?.Any(c => c.Type.StartsWith("image/")) ?? false;
     }
 }
