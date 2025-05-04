@@ -27,12 +27,14 @@ namespace backend.Controllers
             _logger = logger;
         }
 
+
+
         [HttpGet]
-        public async Task<IActionResult> GetTutorials()
+        public async Task<IActionResult> GetTutorials([FromQuery] string search = "", [FromQuery] int? categoryId = null, [FromQuery] string difficulty = "")
         {
             try
             {
-                var tutorials = await _context.Tutorial
+                var query = _context.Tutorial
                     .Include(t => t.Author)
                     .Include(t => t.TutorialCategories)
                         .ThenInclude(tc => tc.Category)
@@ -41,8 +43,24 @@ namespace backend.Controllers
                         .ThenInclude(c => c.User)
                     .Include(t => t.Ratings)
                         .ThenInclude(r => r.User)
-                    .AsNoTracking()
-                    .ToListAsync();
+                    .AsNoTracking();
+
+                if (!string.IsNullOrEmpty(search))
+                {
+                    query = query.Where(t => t.Title.Contains(search) || t.Description.Contains(search));
+                }
+
+                if (categoryId.HasValue)
+                {
+                    query = query.Where(t => t.TutorialCategories.Any(tc => tc.CategoryId == categoryId));
+                }
+
+                if (!string.IsNullOrEmpty(difficulty))
+                {
+                    query = query.Where(t => t.Difficulty == difficulty);
+                }
+
+                var tutorials = await query.ToListAsync();
 
                 var tutorialDtos = tutorials.Select(t => new TutorialFullDto
                 {
@@ -60,12 +78,11 @@ namespace backend.Controllers
                         Email = t.Author.Email,
                         AvatarUrl = t.Author.AvatarUrl
                     },
-                    Categories = t.TutorialCategories
-                        .Select(tc => new CategoryDto
-                        {
-                            Id = tc.Category.Id,
-                            Name = tc.Category.Name
-                        }).ToList(),
+                    Categories = t.TutorialCategories.Select(tc => new CategoryDto
+                    {
+                        Id = tc.Category.Id,
+                        Name = tc.Category.Name
+                    }).ToList(),
                     Contents = t.TutorialContents.Select(tc => new TutorialContentDto
                     {
                         Id = tc.Id,
@@ -99,9 +116,7 @@ namespace backend.Controllers
                             Name = r.User.Name
                         }
                     }).ToList(),
-                    AverageRating = t.Ratings.Any()
-                        ? (double)t.Ratings.Average(r => r.Score)
-                        : 0
+                    AverageRating = t.Ratings.Any() ? (double)t.Ratings.Average(r => r.Score) : 0
                 }).ToList();
 
                 return Ok(tutorialDtos);
@@ -109,11 +124,25 @@ namespace backend.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error obteniendo tutoriales");
-                return StatusCode(500, new
-                {
-                    Message = "Error al obtener los tutoriales",
-                    Error = ex.Message
-                });
+                return StatusCode(500, new { Message = "Error al obtener los tutoriales", Error = ex.Message });
+            }
+        }
+
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetCategories()
+        {
+            try
+            {
+                var categories = await _context.Categories
+                    .AsNoTracking()
+                    .Select(c => new CategoryDto { Id = c.Id, Name = c.Name })
+                    .ToListAsync();
+                return Ok(categories);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error obteniendo categorías");
+                return StatusCode(500, new { Message = "Error al obtener categorías", Error = ex.Message });
             }
         }
 
@@ -195,32 +224,6 @@ namespace backend.Controllers
             }
         }
 
-        [HttpGet("categories")]
-        public async Task<IActionResult> GetCategories()
-        {
-            try
-            {
-                var categories = await _context.Categories
-                    .AsNoTracking()
-                    .Select(c => new CategoryDto
-                    {
-                        Id = c.Id,
-                        Name = c.Name
-                    })
-                    .ToListAsync();
-
-                return Ok(categories);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error obteniendo categorías");
-                return StatusCode(500, new
-                {
-                    Message = "Error al obtener categorías",
-                    Error = ex.Message
-                });
-            }
-        }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetTutorialById(int id)
@@ -524,6 +527,9 @@ namespace backend.Controllers
                 return StatusCode(500, "Error generando el PDF");
             }
         }
+
+
+
 
     }
 }
