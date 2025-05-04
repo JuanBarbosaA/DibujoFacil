@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 export default function CreateTutorialPage() {
+    const { id } = useParams();
     const navigate = useNavigate();
     const [categories, setCategories] = useState([]);
     const [formData, setFormData] = useState({
@@ -14,20 +16,53 @@ export default function CreateTutorialPage() {
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const isEditMode = !!id;
 
     useEffect(() => {
-        const fetchCategories = async () => {
+        const fetchData = async () => {
             try {
-                const response = await fetch('http://localhost:5054/api/Tutorials/categories');
-                if (!response.ok) throw new Error('Error cargando categorías');
-                const data = await response.json();
-                setCategories(data);
+                const [categoriesRes, tutorialRes] = await Promise.all([
+                    fetch('http://localhost:5054/api/Tutorials/categories'),
+                    id && fetch(`http://localhost:5054/api/Tutorials/${id}`)
+                ]);
+
+                if (!categoriesRes.ok) throw new Error('Error cargando categorías');
+                const categoriesData = await categoriesRes.json();
+                setCategories(categoriesData);
+
+                if (id) {
+                    if (!tutorialRes.ok) throw new Error('Error cargando tutorial');
+                    const tutorialData = await tutorialRes.json();
+                    
+                    const contents = await Promise.all(
+                        tutorialData.contents.map(async (c) => {
+                            const blob = await fetch(`data:${c.type};base64,${c.contentBase64}`)
+                                .then(res => res.blob());
+                            return {
+                                file: new File([blob], `content-${c.order}`, { type: c.type }),
+                                type: c.type.startsWith('image/') ? 'image' : 'video',
+                                order: c.order,
+                                title: c.title,
+                                description: c.description
+                            };
+                        })
+                    );
+
+                    setFormData({
+                        title: tutorialData.title,
+                        description: tutorialData.description,
+                        difficulty: tutorialData.difficulty,
+                        estimatedDuration: tutorialData.estimatedDuration,
+                        categoryIds: tutorialData.categories.map(c => c.id),
+                        contents: contents.sort((a, b) => a.order - b.order)
+                    });
+                }
             } catch (err) {
                 setError(err.message);
             }
         };
-        fetchCategories();
-    }, []);
+        fetchData();
+    }, [id]);
 
     const handleFileUpload = (e) => {
         const files = Array.from(e.target.files);
@@ -59,20 +94,18 @@ export default function CreateTutorialPage() {
         setError('');
 
         try {
-            if (formData.contents.length === 0) {
-                throw new Error('Debes agregar al menos un paso al tutorial');
-            }
-
-            if (formData.categoryIds.length === 0) {
-                throw new Error('Selecciona al menos una categoría');
-            }
-
-            const formPayload = new FormData();
+            const url = isEditMode 
+                ? `http://localhost:5054/api/Tutorials/update/${id}`
+                : 'http://localhost:5054/api/Tutorials/create';
+                
+            const method = isEditMode ? 'PUT' : 'POST';
             
+            const formPayload = new FormData();
             formPayload.append('Title', formData.title);
             formPayload.append('Description', formData.description);
             formPayload.append('Difficulty', formData.difficulty);
             formPayload.append('EstimatedDuration', formData.estimatedDuration.toString());
+            
             formData.categoryIds.forEach(id => {
                 formPayload.append('CategoryIds', id.toString()); 
             });
@@ -85,23 +118,18 @@ export default function CreateTutorialPage() {
             });
 
             const token = localStorage.getItem('token');
-            if (!token) throw new Error('Debes iniciar sesión');
-
-            const response = await fetch('http://localhost:5054/api/Tutorials/create', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
+            const response = await fetch(url, {
+                method,
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formPayload
             });
-            console.log('Token:', localStorage.getItem('token')); 
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || 'Error al crear tutorial');
+                throw new Error(errorData.message || 'Error');
             }
 
-            navigate('/tutorials');
+            navigate(isEditMode ? `/tutorials/${id}` : '/tutorials');
         } catch (err) {
             setError(err.message);
         } finally {
@@ -111,6 +139,11 @@ export default function CreateTutorialPage() {
 
     return (
         <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
+            <h1 className="text-3xl font-bold text-gray-800 mb-8">
+                {isEditMode ? 'Editar Tutorial' : 'Crear Nuevo Tutorial'}
+            </h1>
+            
+            <div className="max-w-4xl mx-auto p-6 bg-white rounded-lg shadow-md">
             <h1 className="text-3xl font-bold text-gray-800 mb-8">Crear Nuevo Tutorial</h1>
             
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -314,6 +347,7 @@ export default function CreateTutorialPage() {
                     </button>
                 </div>
             </form>
+        </div>
         </div>
     );
 }

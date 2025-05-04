@@ -529,7 +529,65 @@ namespace backend.Controllers
         }
 
 
+        [Authorize]
+        [HttpPut("update/{id}")]
+        public async Task<IActionResult> UpdateTutorial(
+    int id,
+    [FromForm] TutorialCreationDto tutorialDto)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
 
+                var tutorial = await _context.Tutorial
+                    .Include(t => t.TutorialCategories)
+                    .Include(t => t.TutorialContents)
+                    .FirstOrDefaultAsync(t => t.Id == id && t.AuthorId == userId);
+
+                if (tutorial == null) return NotFound("Tutorial no encontrado");
+
+                tutorial.Title = tutorialDto.Title;
+                tutorial.Description = tutorialDto.Description;
+                tutorial.Difficulty = tutorialDto.Difficulty;
+                tutorial.EstimatedDuration = tutorialDto.EstimatedDuration;
+                tutorial.Status = "pending";
+
+                _context.TutorialCategories.RemoveRange(tutorial.TutorialCategories);
+                _context.TutorialContents.RemoveRange(tutorial.TutorialContents);
+
+                foreach (var contentDto in tutorialDto.Contents)
+                {
+                    using var memoryStream = new MemoryStream();
+                    await contentDto.File.CopyToAsync(memoryStream);
+                    _context.TutorialContents.Add(new TutorialContent
+                    {
+                        TutorialId = tutorial.Id,
+                        Type = contentDto.File.ContentType,
+                        Content = memoryStream.ToArray(),
+                        Order = contentDto.Order,
+                        Title = contentDto.Title,
+                        Description = contentDto.Description
+                    });
+                }
+
+                var tutorialCategories = tutorialDto.CategoryIds.Select(cId =>
+                    new TutorialCategory { TutorialId = tutorial.Id, CategoryId = cId }
+                );
+                await _context.TutorialCategories.AddRangeAsync(tutorialCategories);
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new { Message = "Tutorial actualizado exitosamente" });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Error actualizando tutorial");
+                return StatusCode(500, new { Message = "Error interno", Error = ex.Message });
+            }
+        }
 
     }
 }

@@ -20,6 +20,7 @@ export default function App() {
         <Route path="/profile" element={<ProtectedRoute><ProfilePage/></ProtectedRoute>} />
         <Route path="/createTutorial" element={<ProtectedRoute><CreateTutorialPage/></ProtectedRoute>} />
         <Route path="/tutorial/:id" element={<TutorialPage/>}/>
+        <Route path="/edit-tutorial/:id" element={<CreateTutorialPage />} />
       </Routes>
     </Router>
   )
