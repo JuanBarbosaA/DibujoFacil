@@ -8,6 +8,7 @@ import ProfilePage from "./pages/profile/page";
 import CreateTutorialPage from "./pages/createTutorial/page";
 import TutorialPage from "./pages/tutorial/page";
 import '../tailwind-input.css';
+import AdminPage from "./pages/admin/page";
 
 export default function App() {
   return(
@@ -21,6 +22,7 @@ export default function App() {
         <Route path="/createTutorial" element={<ProtectedRoute><CreateTutorialPage/></ProtectedRoute>} />
         <Route path="/tutorial/:id" element={<TutorialPage/>}/>
         <Route path="/edit-tutorial/:id" element={<CreateTutorialPage />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </Router>
   )

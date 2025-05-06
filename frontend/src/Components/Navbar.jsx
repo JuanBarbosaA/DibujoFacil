@@ -10,6 +10,7 @@ export default function Navbar(){
             <Link to={"/register"}>Register</Link>
             <Link to={"/profile"}>Profile</Link>
             <Link to={"/createTutorial"}>Create tutorial</Link>
+            <Link to={"/admin"}>Admin</Link>
         </nav>
     )
 }
