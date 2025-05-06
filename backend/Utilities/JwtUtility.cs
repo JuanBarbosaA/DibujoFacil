@@ -23,8 +23,9 @@ namespace backend.Utilities
                 new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),  
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Email, email)  
+                new Claim(ClaimTypes.Email, email),
             };
+
 
             var token = new JwtSecurityToken(
                 issuer: jwtIssuer,

@@ -20,4 +20,5 @@ public partial class TutorialContent
     public string? Title { get; set; }
 
     public virtual Tutorial Tutorial { get; set; } = null!;
+
 }
