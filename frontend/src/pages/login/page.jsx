@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -26,36 +26,81 @@ export default function LoginPage() {
       localStorage.setItem('token', data.token); 
       localStorage.setItem('userId', data.userId); 
       localStorage.setItem('userEmail', data.email);
-      navigate('/dashboard'); 
+      navigate('/tutorials'); 
     }
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
-        {error && <div style={{ color: 'red' }}>{error}</div>}
-        <button type="submit">Login</button>
-      </form>
-    </div>
+    <section className="min-h-screen flex items-center justify-center relative">
+      {/* Fondo con imagen */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="Banner-hero-home.jpg" 
+          alt="Background" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/40"></div>
+      </div>
+      {/* Formulario */}
+      <div className="relative z-10 bg-white/90 p-8 rounded-lg shadow-xl max-w-md w-full mx-4">
+
+      <div className='flex justify-center mb-2'>
+      <img src="Dibujo-Facil-logo.png" width={120} alt="" />
+      
+      </div>
+        <h2 className="text-xl font-bold text-blue-900 mb-6 text-center">
+          Inicia Sesión
+          
+        <p className='text-gray-400 text-sm font-medium mt-1'>para unirte a nuestra comunidad</p>
+        </h2>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-gray-700 text-sm font-semibold mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-gray-700 text-sm font-semibold mb-2">
+              Contraseña
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+              required
+            />
+          </div>
+          
+          {error && <div className="text-red-500 text-sm text-center">{error}</div>}
+          
+          <button 
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Acceder
+          </button>
+          
+          <p className="text-center text-sm text-gray-600 mt-4">
+            ¿No tienes cuenta?{' '}
+            <Link 
+              to="/register" 
+              className="text-blue-600 hover:underline"
+            >
+              Regístrate aquí
+            </Link>
+          </p>
+        </form>
+      </div>
+    </section>
   );
 }
-

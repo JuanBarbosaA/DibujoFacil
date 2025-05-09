@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import Logout from '../../Components/logout';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+
   useEffect(() => {
     const fetchProfile = async () => {
       const token = localStorage.getItem('token');
@@ -29,96 +30,96 @@ export default function ProfilePage() {
     fetchProfile();
   }, []);
 
-  if (error) return <p style={{ color: 'red' }}>{error}</p>;
-  if (!user) return <p>Cargando...</p>;
+  if (error) return <p className="text-red-500 text-center p-4">{error}</p>;
+  if (!user) return <p className="text-center p-4">Cargando...</p>;
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '30px' }}>
-        <h2>Bienvenido, {user.name || user.email}</h2>
-        <p>Email: {user.email}</p>
-        <p>Puntos: {user.points}</p>
-        <Logout />
+    <div className="p-6 max-w-4xl mx-auto min-h-screen">
+      <div className="mb-8 border-b pb-6 relative">
+        <div className="flex justify-between items-start">
+          <div className="flex items-center gap-4">
+            {user.avatarUrl && (
+              <img
+                src={user.avatarUrl}
+                alt="Avatar"
+                className="w-16 h-16 rounded-full object-cover border border-gray-300"
+              />
+            )}
+            <div>
+              <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                Bienvenido, {user.name || user.email}
+              </h2>
+              <p className="text-gray-600 mb-1">Email: {user.email}</p>
+              <p className="text-gray-600">
+                Puntos:
+                <span className="ml-2 bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
+                  {user.points}
+                </span>
+              </p>
+            </div>
+          </div>
+          <Logout className="absolute top-0 right-0" />
+        </div>
+  
+        <Link
+          to="/createTutorial"
+          className="mt-4 inline-block bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors"
+        >
+          Crear Tutorial
+        </Link>
       </div>
-
+  
       <div>
-        <h3>Tus Tutoriales ({user.tutorials?.length || 0})</h3>
-        
+        <h3 className="text-2xl font-semibold text-gray-800 mb-6">
+          Tus Tutoriales ({user.tutorials?.length || 0})
+        </h3>
+  
         {user.tutorials?.length > 0 ? (
-          <div style={{ display: 'grid', gap: '20px' }}>
+          <div className="grid gap-6 md:grid-cols-2">
             {user.tutorials.map(tutorial => (
-              <div 
+              <div
                 key={tutorial.id}
-                style={{
-                  padding: '15px',
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  backgroundColor: '#f9f9f9',
-                  position: "relative"
-                }}
+                className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow relative"
               >
-                <div style={{ position: 'absolute', top: '10px', right: '10px' }}>
-                <button 
-                  onClick={() => navigate(`/edit-tutorial/${tutorial.id}`)}  // Usando navigate correctamente
-                  style={{
-                    padding: '5px 10px',
-                    background: '#3b82f6',
-                    color: 'white',
-                    borderRadius: '5px',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Editar
-                </button>
-              </div>
+                <div className="absolute top-4 right-4 flex gap-2">
+                  <button
+                    onClick={() => navigate(`/edit-tutorial/${tutorial.id}`)}
+                    className="bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700 transition-colors"
+                  >
+                    Editar
+                  </button>
+                </div>
+  
                 {tutorial.lastImage && (
-                  <div style={{ marginBottom: '15px', textAlign: 'center' }}>
-                    <img 
+                  <div className="mb-4 text-center">
+                    <img
                       src={`data:${tutorial.lastImage.type};base64,${tutorial.lastImage.contentBase64}`}
                       alt="Miniatura del tutorial"
-                      style={{ 
-                        maxWidth: '100%',
-                        height: '200px',
-                        objectFit: 'contain',
-                        borderRadius: '4px',
-                        border: '1px solid #eee'
-                      }}
+                      className="max-w-full max-h-48 mx-auto object-contain rounded-lg border border-gray-200"
                     />
                   </div>
                 )}
-
-                <h4>{tutorial.title}</h4>
-                <p>{tutorial.description}</p>
-                
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '15px', 
-                  marginTop: '10px',
-                  flexWrap: 'wrap'
-                }}>
-                  <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                    <span>📝 {tutorial.commentCount}</span>
+  
+                <h4 className="text-xl font-semibold text-gray-800 mb-2">{tutorial.title}</h4>
+                <p className="text-gray-600 mb-4 line-clamp-3">{tutorial.description}</p>
+  
+                <div className="flex gap-4 items-center text-sm text-gray-500 mb-4">
+                  <div className="flex items-center">
+                    <span className="mr-1">📝</span>
+                    {tutorial.commentCount}
                   </div>
-                  
-                  <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                    <span>⭐ {tutorial.averageRating?.toFixed(1) || '0.0'}</span>
-                    <span style={{ fontSize: '0.9em', color: '#666' }}>
+  
+                  <div className="flex items-center">
+                    <span className="mr-1">⭐</span>
+                    {tutorial.averageRating?.toFixed(1) || '0.0'}
+                    <span className="ml-1 text-xs">
                       ({tutorial.ratingCount} votos)
                     </span>
                   </div>
-
                 </div>
-      
-
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '15px', 
-                  marginTop: '10px',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <span style={{ fontSize: '0.9em', color: '#666' }}>
+  
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-gray-500">
                     {new Date(tutorial.publicationDate).toLocaleDateString('es-ES', {
                       day: '2-digit',
                       month: '2-digit',
@@ -127,13 +128,14 @@ export default function ProfilePage() {
                       minute: '2-digit'
                     })}
                   </span>
-                  
-                  <span style={{
-                    padding: '3px 8px',
-                    borderRadius: '5px',
-                    backgroundColor: tutorial.status === 'pending' ? '#fff3cd' : '#d4edda',
-                    color: tutorial.status === 'pending' ? '#856404' : '#155724'
-                  }}>
+  
+                  <span
+                    className={`px-2 py-1 rounded-md text-sm ${
+                      tutorial.status === 'pending'
+                        ? 'bg-amber-100 text-amber-800'
+                        : 'bg-green-100 text-green-800'
+                    }`}
+                  >
                     {tutorial.status === 'pending' ? 'En revisión' : 'Publicado'}
                   </span>
                 </div>
@@ -141,11 +143,20 @@ export default function ProfilePage() {
             ))}
           </div>
         ) : (
-          <p style={{ color: '#666', fontStyle: 'italic' }}>
-            Aún no has creado ningún tutorial
-          </p>
+          <div className="text-center p-8 border-2 border-dashed rounded-xl">
+            <p className="text-gray-500 italic">
+              Aún no has creado ningún tutorial
+            </p>
+            <Link
+              to="/createTutorial"
+              className="mt-4 inline-block text-blue-600 hover:underline"
+            >
+              Crear mi primer tutorial →
+            </Link>
+          </div>
         )}
       </div>
     </div>
   );
+  
 }

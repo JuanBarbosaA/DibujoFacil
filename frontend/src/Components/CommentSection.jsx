@@ -78,7 +78,7 @@ export default function CommentSection({ tutorialId }) {
                 <div className="mb-8 bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                     <div className="flex gap-4">
                         <img
-                            src={user?.avatarUrl || '/default-avatar.png'}
+                            src={user?.avatarUrl || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_640.png'}
                             alt={user?.name}
                             className="w-12 h-12 rounded-full object-cover"
                         />

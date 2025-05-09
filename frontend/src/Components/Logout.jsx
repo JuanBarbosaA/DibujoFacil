@@ -9,5 +9,12 @@ export default function Logout() {
     navigate('/login'); 
   };
 
-  return <button onClick={handleLogout}>Logout</button>;
+  return (
+    <button
+      onClick={handleLogout}
+      className="text-blue-600 hover:underline font-semibold"
+    >
+      Cerrar Sesión
+    </button>
+  );
 }

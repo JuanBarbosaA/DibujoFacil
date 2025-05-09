@@ -12,7 +12,8 @@ export default function TutorialPage() {
     const [ratingError, setRatingError] = useState('');
     const [hasRated, setHasRated] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
+    const [isExpanded, setIsExpanded] = useState(false);
+                        
     const fetchTutorialData = async () => {
         try {
             const response = await fetch(`http://localhost:5054/api/Tutorials/${id}`);
@@ -204,6 +205,27 @@ export default function TutorialPage() {
             <article>
                 <header className="mb-8">
                     <h1 className="text-4xl font-bold text-gray-900 mb-4">{tutorial.title}</h1>
+                    {tutorial.contents.length > 0 && (
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+                        <div className="mb-6 border-l-4 border-green-600 pl-4">
+                            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                Resultado Esperado
+                            </h3>
+                            <p className="text-gray-600">Este es el resultado final que lograrás al completar el tutorial</p>
+                        </div>
+                        <img
+                            src={`data:${tutorial.contents[tutorial.contents.length - 1].type};base64,${tutorial.contents[tutorial.contents.length - 1].contentBase64}`}
+                            alt="Resultado final"
+                            className="rounded-lg shadow-md mx-auto max-w-96 w-full h-auto transition-transform hover:scale-105 cursor-zoom-in mb-4"
+                            onClick={() => window.open(`data:${tutorial.contents[tutorial.contents.length - 1].type};base64,${tutorial.contents[tutorial.contents.length - 1].contentBase64}`, '_blank')}
+                        />
+                            <p className="text-gray-600 text-center italic">
+                                {tutorial.description}
+                            </p>
+                        
+                    </div>
+                )}
+
                     <div className="flex items-center gap-4">
                         <img
                             src={tutorial.author.avatarUrl || '/default-avatar.png'}
@@ -223,7 +245,7 @@ export default function TutorialPage() {
                     </div>
                 </header>
 
-                <div className="bg-gray-50 p-6 rounded-xl mb-8 shadow-sm">
+                <div className="bg-gray-50 p-6 rounded-xl mb-8 shadow-sm border border-gray-200">
                     <div className="flex flex-wrap gap-4 items-center mb-4">
                         <span className={`px-4 py-2 rounded-full font-medium ${
                             tutorial.difficulty === 'beginner' ? 'bg-green-100 text-green-800' :
@@ -254,36 +276,53 @@ export default function TutorialPage() {
                     </div>
                 </div>
                 
-                <DownloadPdfButton />
-                
+                <div className="flex justify-center mb-8">
+                    <DownloadPdfButton/>
+                </div>
+
                 <RatingSection />
 
-                <section className="prose max-w-none mb-12">
-                    <p className="text-lg text-gray-600 leading-relaxed">{tutorial.description}</p>
+                <section className="mb-12">
+                    <p className="text-lg text-gray-600 leading-relaxed mb-8">{tutorial.description}</p>
 
-                    {tutorial.contents.sort((a, b) => a.order - b.order).map((content, index) => (
-                        <div key={content.id} className="my-10">
-                            <div className="mb-6 border-l-4 border-blue-600 pl-4">
-                                <h3 className="text-2xl font-semibold text-gray-900">
-                                    Paso {index + 1}: {content.title}
-                                </h3>
-                                {content.description && (
-                                    <p className="mt-2 text-gray-600">{content.description}</p>
-                                )}
+
+
+                    {tutorial.contents.sort((a, b) => a.order - b.order).map((content, index) => {
+                        
+                        return (
+                            <div key={content.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
+                                <div className="mb-6 border-l-4 border-blue-600 pl-4">
+                                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                        {content.title}
+                                    </h3>
+                                    {content.description && (
+                                        <div className="mt-2">
+                                            <p className={`text-gray-600 ${!isExpanded && 'line-clamp-3'}`}>
+                                                {content.description}
+                                            </p>
+                                            {content.description.length > 150 && (
+                                                <button 
+                                                    onClick={() => setIsExpanded(!isExpanded)}
+                                                    className="text-blue-600 hover:text-blue-800 text-sm mt-2"
+                                                >
+                                                    {isExpanded ? 'Ver menos' : 'Ver más'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                <img
+                                    src={`data:${content.type};base64,${content.contentBase64}`}
+                                    alt={content.description || `Paso ${index + 1}`}
+                                    className="rounded-lg shadow-md mx-auto max-w-2xl w-full h-auto transition-transform hover:scale-105 cursor-zoom-in"
+                                    onClick={() => window.open(`data:${content.type};base64,${content.contentBase64}`, '_blank')}
+                                />
                             </div>
-                            <img
-                                src={`data:${content.type};base64,${content.contentBase64}`}
-                                alt={content.description || `Paso ${index + 1}`}
-                                className="rounded-xl shadow-lg w-full h-auto"
-                            />
-                        </div>
-                    ))}
+                        )
+                    })}
                 </section>
-   
 
                 <CommentSection tutorialId={id} />
-                
-             
             </article>
         </div>
     );

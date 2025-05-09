@@ -14,7 +14,8 @@ const DownloadPdfButton = () => {
             const response = await fetch(`http://localhost:5054/api/Tutorials/download-pdf/${id}`);
             
             if (!response.ok) {
-                throw new Error('Error al generar el PDF');
+                const errorData = await response.json(); 
+                throw new Error(errorData.message || 'Error al generar el PDF');
             }
 
             const blob = await response.blob();
@@ -36,12 +37,11 @@ const DownloadPdfButton = () => {
     };
 
     return (
-        <div className="mb-6 bg-red-500">
+        <div className="">
             <button
                 onClick={handleDownload}
                 disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded-lg 
-                         hover:bg-green-700 transition-colors disabled:opacity-50 cursor-pointer"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 shadow-md cursor-pointer"
             >
                 {loading ? (
                     <>

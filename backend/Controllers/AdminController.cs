@@ -27,7 +27,6 @@ namespace backend.Controllers
             var currentUser = await _context.Users
                 .FirstOrDefaultAsync(u => u.Id == currentUserId);
 
-            // Verificar si el usuario es admin (RoleId = 1)
             if (currentUser?.RoleId != 1)
                 return Forbid("No tienes permisos de administrador");
 
@@ -45,7 +44,7 @@ namespace backend.Controllers
                     RoleId = u.RoleId,
                     Role = u.Role.Name,
                     TutorialsCount = u.Tutorials.Count,
-                    LastLogin = u.RegistrationDate // Cambiar por campo real de último login si existe
+                    LastLogin = u.RegistrationDate 
                 })
                 .ToListAsync();
 
@@ -61,32 +60,26 @@ namespace backend.Controllers
         {
             try
             {
-                // Verificar permisos de admin
                 var adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var adminUser = await _context.Users.FindAsync(adminId);
                 if (adminUser?.RoleId != 1) return Forbid("No eres administrador");
 
-                // Validar modelo
                 if (!ModelState.IsValid) return BadRequest(ModelState);
 
-                // Buscar usuario a editar
                 var user = await _context.Users
                     .Include(u => u.Role)
                     .FirstOrDefaultAsync(u => u.Id == id);
 
                 if (user == null) return NotFound("Usuario no encontrado");
 
-                // Validar email único (excepto para el mismo usuario)
                 if (await _context.Users.AnyAsync(u => u.Email == userDto.Email && u.Id != id))
                     return Conflict("El email ya está registrado");
 
-                // Actualizar campos permitidos
                 user.Name = userDto.Name;
                 user.Email = userDto.Email;
                 user.Points = userDto.Points;
                 user.Status = userDto.Status;
 
-                // Cambiar rol si es necesario
                 if (userDto.RoleId != user.RoleId)
                 {
                     var newRole = await _context.Roles.FindAsync(userDto.RoleId);
@@ -94,10 +87,8 @@ namespace backend.Controllers
                     user.RoleId = newRole.Id;
                 }
 
-                // Guardar cambios
                 await _context.SaveChangesAsync();
 
-                // Devolver usuario actualizado
                 return Ok(new
                 {
                     user.Id,
@@ -134,16 +125,13 @@ namespace backend.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Verificar permisos de admin
                 var adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var adminUser = await _context.Users.FindAsync(adminId);
                 if (adminUser?.RoleId != 1) return Forbid("No eres administrador");
 
-                // Validar no auto-eliminación
                 if (id == adminId)
                     return BadRequest("No puedes eliminarte a ti mismo");
 
-                // Buscar usuario a eliminar con todas sus relaciones
                 var user = await _context.Users
                     .Include(u => u.Tutorials)
                         .ThenInclude(t => t.Comments)
@@ -155,7 +143,6 @@ namespace backend.Controllers
 
                 if (user == null) return NotFound("Usuario no encontrado");
 
-                // Eliminar relaciones primero
                 _context.Comments.RemoveRange(user.Comments);
                 _context.Ratings.RemoveRange(user.Ratings);
 
@@ -190,23 +177,18 @@ namespace backend.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Verificar permisos de admin
                 var adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var adminUser = await _context.Users.FindAsync(adminId);
                 if (adminUser?.RoleId != 1) return Forbid("No eres administrador");
 
-                // Validar modelo
                 if (!ModelState.IsValid) return BadRequest(ModelState);
 
-                // Verificar email único
                 if (await _context.Users.AnyAsync(u => u.Email == userDto.Email))
                     return Conflict("El email ya está registrado");
 
-                // Verificar rol válido
                 var role = await _context.Roles.FindAsync(userDto.RoleId);
                 if (role == null) return BadRequest("Rol no válido");
 
-                // Crear usuario
                 var newUser = new User
                 {
                     Name = userDto.Name,
@@ -245,7 +227,6 @@ namespace backend.Controllers
         {
             try
             {
-                // Verificar permisos de admin
                 var adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var adminUser = await _context.Users.FindAsync(adminId);
                 if (adminUser?.RoleId != 1) return Forbid("No eres administrador");
@@ -322,7 +303,6 @@ public async Task<IActionResult> UpdateTutorialContents(
 
         if (tutorial == null) return NotFound("Tutorial no encontrado");
 
-        // Eliminar contenidos marcados
         if (contentDto.ContentIdsToDelete != null && contentDto.ContentIdsToDelete.Any())
         {
             var contentsToDelete = tutorial.TutorialContents
@@ -332,7 +312,6 @@ public async Task<IActionResult> UpdateTutorialContents(
             _context.TutorialContents.RemoveRange(contentsToDelete);
         }
 
-        // Agregar nuevos contenidos
         if (contentDto.NewImages != null && contentDto.NewImages.Count > 0)
         {
             var maxOrder = tutorial.TutorialContents.Any() ? 
@@ -375,12 +354,10 @@ public async Task<IActionResult> UpdateTutorialContents(
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Verificar permisos de admin
                 var adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
                 var adminUser = await _context.Users.FindAsync(adminId);
                 if (adminUser?.RoleId != 1) return Forbid("No eres administrador");
 
-                // Buscar tutorial con todas sus relaciones
                 var tutorial = await _context.Tutorial
                     .Include(t => t.TutorialContents)
                     .Include(t => t.Comments)
@@ -390,13 +367,11 @@ public async Task<IActionResult> UpdateTutorialContents(
 
                 if (tutorial == null) return NotFound("Tutorial no encontrado");
 
-                // Eliminar relaciones
                 _context.Comments.RemoveRange(tutorial.Comments);
                 _context.Ratings.RemoveRange(tutorial.Ratings);
                 _context.TutorialContents.RemoveRange(tutorial.TutorialContents);
                 _context.TutorialCategories.RemoveRange(tutorial.TutorialCategories);
 
-                // Eliminar tutorial
                 _context.Tutorial.Remove(tutorial);
 
                 await _context.SaveChangesAsync();
