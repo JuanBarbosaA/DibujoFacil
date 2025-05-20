@@ -400,5 +400,110 @@ public async Task<IActionResult> UpdateTutorialContents(
             return Ok(categories);
         }
 
+
+        [HttpGet("tutorials/pending")]
+        public async Task<IActionResult> GetPendingTutorials()
+        {
+            try
+            {
+                var adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var adminUser = await _context.Users.FindAsync(adminId);
+                if (adminUser?.RoleId != 1) return Forbid("No eres administrador");
+
+                var pendingTutorials = await _context.Tutorial
+                    .Include(t => t.Author)
+                    .Include(t => t.TutorialCategories)
+                        .ThenInclude(tc => tc.Category)
+                    .Where(t => t.Status == "pending")
+                    .AsNoTracking()
+                    .Select(t => new AdminTutorialDto
+                    {
+                        Id = t.Id,
+                        Title = t.Title,
+                        Status = t.Status,
+                        PublicationDate = (DateTime)t.PublicationDate,
+                        Difficulty = t.Difficulty,
+                        Author = new AdminTutorialAuthorDto
+                        {
+                            Id = t.Author.Id,
+                            Name = t.Author.Name,
+                            Email = t.Author.Email
+                        },
+                        Categories = t.TutorialCategories
+                            .Select(tc => tc.Category.Name)
+                            .ToList(),
+                        ContentCount = t.TutorialContents.Count,
+                        CommentsCount = t.Comments.Count,
+                        AverageRating = t.Ratings.Any() ?
+                            t.Ratings.Average(r => r.Score.Value) : 0,
+                        LastImage = t.TutorialContents
+                            .Where(c => c.Type.StartsWith("image/"))
+                            .OrderByDescending(c => c.Order)
+                            .Select(c => new TutorialContentImageDto
+                            {
+                                Type = c.Type,
+                                ContentBase64 = Convert.ToBase64String(c.Content)
+                            })
+                            .FirstOrDefault()
+                    })
+                    .ToListAsync();
+
+                return Ok(pendingTutorials);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    Message = "Error al obtener tutoriales pendientes",
+                    Error = ex.Message
+                });
+            }
+        }
+
+
+
+
+        [HttpPut("tutorials/{id}/approve")]
+        public async Task<IActionResult> ApproveTutorial(int id)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var adminUser = await _context.Users.FindAsync(adminId);
+                if (adminUser?.RoleId != 1) return Forbid("No eres administrador");
+
+                var tutorial = await _context.Tutorial
+                    .Include(t => t.Author)
+                    .FirstOrDefaultAsync(t => t.Id == id);
+
+                if (tutorial == null) return NotFound("Tutorial no encontrado");
+
+                if (tutorial.Status == "pending")
+                {
+                    tutorial.Author.Points += 200;
+                }
+
+                tutorial.Status = "approved";
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                return Ok(new
+                {
+                    Message = "Tutorial aprobado exitosamente",
+                    PointsAdded = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, new
+                {
+                    Message = "Error al aprobar el tutorial",
+                    Error = ex.Message
+                });
+            }
+        }
+
     }
 }

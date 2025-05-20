@@ -14,12 +14,25 @@ export default function TutorialsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [tutorialsRes, categoriesRes] = await Promise.all([
-          fetch(
-            `http://localhost:5054/api/Tutorials?search=${searchTerm}&categoryId=${selectedCategory}&difficulty=${selectedDifficulty}`
-          ),
-          fetch("http://localhost:5054/api/Tutorials/categories"),
-        ]);
+        const token = localStorage.getItem('token'); // O sessionStorage
+    
+    const [tutorialsRes, categoriesRes] = await Promise.all([
+      fetch(
+        `http://localhost:5054/api/Tutorials?search=${searchTerm}&categoryId=${selectedCategory}&difficulty=${selectedDifficulty}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      ),
+      fetch("http://localhost:5054/api/Tutorials/categories", {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      }),
+    ]);
+
+        
 
         if (!tutorialsRes.ok || !categoriesRes.ok)
           throw new Error("Error fetching data");

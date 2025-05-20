@@ -26,14 +26,32 @@ namespace backend.Controllers
             _context = context;
             _logger = logger;
         }
-
-
-
+        [Authorize]
         [HttpGet]
-        public async Task<IActionResult> GetTutorials([FromQuery] string search = "", [FromQuery] int? categoryId = null, [FromQuery] string difficulty = "")
+        public async Task<IActionResult> GetTutorials(
+    [FromQuery] string search = "",
+    [FromQuery] int? categoryId = null,
+    [FromQuery] string difficulty = "")
         {
             try
             {
+                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+                var user = await _context.Users.FindAsync(userId);
+
+                if (user == null) return NotFound("Usuario no encontrado");
+
+                List<string> allowedDifficulties = user.RoleId == 1 // Si es admin
+                    ? new List<string> { "beginner", "intermediate", "advanced" }
+                    : GetAllowedDifficulties(user.Points ?? 0);
+
+                if (!string.IsNullOrEmpty(difficulty))
+                {
+                    difficulty = difficulty.ToLower();
+                    allowedDifficulties = allowedDifficulties.Contains(difficulty)
+                        ? new List<string> { difficulty }
+                        : new List<string>();
+                }
+
                 var query = _context.Tutorial
                     .Include(t => t.Author)
                     .Include(t => t.TutorialCategories)
@@ -43,21 +61,21 @@ namespace backend.Controllers
                         .ThenInclude(c => c.User)
                     .Include(t => t.Ratings)
                         .ThenInclude(r => r.User)
+                    .Where(t => allowedDifficulties.Contains(t.Difficulty.ToLower())
+                && t.Status == "approved")
                     .AsNoTracking();
 
                 if (!string.IsNullOrEmpty(search))
                 {
-                    query = query.Where(t => t.Title.Contains(search) || t.Description.Contains(search));
+                    query = query.Where(t =>
+                        t.Title.Contains(search) ||
+                        t.Description.Contains(search));
                 }
 
                 if (categoryId.HasValue)
                 {
-                    query = query.Where(t => t.TutorialCategories.Any(tc => tc.CategoryId == categoryId));
-                }
-
-                if (!string.IsNullOrEmpty(difficulty))
-                {
-                    query = query.Where(t => t.Difficulty == difficulty);
+                    query = query.Where(t =>
+                        t.TutorialCategories.Any(tc => tc.CategoryId == categoryId));
                 }
 
                 var tutorials = await query.ToListAsync();
@@ -124,9 +142,23 @@ namespace backend.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error obteniendo tutoriales");
-                return StatusCode(500, new { Message = "Error al obtener los tutoriales", Error = ex.Message });
+                return StatusCode(500, new
+                {
+                    Message = "Error al obtener los tutoriales",
+                    Error = ex.Message
+                });
             }
         }
+
+        private List<string> GetAllowedDifficulties(int points)
+        {
+            if (points < 1000) return new List<string> { "beginner" };
+            if (points < 3000) return new List<string> { "beginner", "intermediate" };
+            return new List<string> { "beginner", "intermediate", "advanced" };
+        }
+
+
+      
 
         [HttpGet("categories")]
         public async Task<IActionResult> GetCategories()

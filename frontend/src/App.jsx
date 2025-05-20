@@ -8,7 +8,6 @@ import CreateTutorialPage from "./pages/createTutorial/page";
 import TutorialPage from "./pages/tutorial/page";
 import AdminPage from "./pages/admin/page";
 import TutorialsPage from "./pages/tutorials/page";
-
 export default function App() {
   return(
     <Router>

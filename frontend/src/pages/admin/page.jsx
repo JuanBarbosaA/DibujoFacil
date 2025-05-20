@@ -10,13 +10,13 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('users');
   const [roles, setRoles] = useState([]);
   const [editingTutorial, setEditingTutorial] = useState(null);
-const [categories, setCategories] = useState([]);
-const [tutorialFormData, setTutorialFormData] = useState({
-  title: '',
-  status: 'published',
-  difficulty: 'beginner',
-  categoryIds: []
-});
+  const [categories, setCategories] = useState([]);
+  const [tutorialFormData, setTutorialFormData] = useState({
+    title: '',
+    status: 'published',
+    difficulty: 'beginner',
+    categoryIds: []
+  });
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -128,13 +128,11 @@ const [tutorialFormData, setTutorialFormData] = useState({
     }
   };
 
-
   const handleSubmitTutorial = async (e) => {
     e.preventDefault();
     const token = localStorage.getItem('token');
     
     try {
-      // Actualizar metadatos primero
       const metadataResponse = await fetch(`http://localhost:5054/api/admin/tutorials/${editingTutorial.id}`, {
         method: 'PUT',
         headers: {
@@ -151,7 +149,6 @@ const [tutorialFormData, setTutorialFormData] = useState({
 
       if (!metadataResponse.ok) throw new Error('Error actualizando metadatos');
 
-      // Actualizar imágenes
       const formData = new FormData();
       if (contentToDelete.length > 0) {
         formData.append('ContentIdsToDelete', JSON.stringify(contentToDelete));
@@ -173,7 +170,6 @@ const [tutorialFormData, setTutorialFormData] = useState({
 
       if (!contentResponse.ok) throw new Error('Error actualizando imágenes');
 
-      // Actualizar estado local
       const updatedTutorial = await metadataResponse.json();
       setTutorials(prev => prev.map(t => 
         t.id === updatedTutorial.id ? { 
@@ -237,7 +233,6 @@ const [tutorialFormData, setTutorialFormData] = useState({
         }
       });
   
-      // Verificar si la respuesta está vacía (204 No Content)
       if (response.status === 204) {
         setTutorials(prev => prev.filter(t => t.id !== tutorialId));
         return;
@@ -253,6 +248,26 @@ const [tutorialFormData, setTutorialFormData] = useState({
       setError('');
     } catch (err) {
       setError(err.message || 'Error al eliminar el tutorial');
+    }
+  };
+
+  const handleApproveTutorial = async (tutorialId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5054/api/admin/tutorials/${tutorialId}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Error al aprobar tutorial');
+      
+      setTutorials(prev => prev.map(t => 
+        t.id === tutorialId ? { ...t, status: 'approved' } : t
+      ));
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -312,6 +327,8 @@ const [tutorialFormData, setTutorialFormData] = useState({
   if (loading) return <div className="text-center mt-8">Cargando...</div>;
   if (error) return <div className="text-red-500 text-center mt-8">{error}</div>;
 
+  const pendingTutorials = tutorials.filter(t => t.status === 'pending');
+
   return (
     <div className="max-w-7xl mx-auto p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-8">
@@ -339,6 +356,16 @@ const [tutorialFormData, setTutorialFormData] = useState({
           } transition-colors`}
         >
           Tutoriales ({tutorials.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('pending-tutorials')}
+          className={`px-4 py-3 ml-4 font-medium ${
+            activeTab === 'pending-tutorials' 
+              ? 'border-b-2 border-primary-500 text-primary-600' 
+              : 'text-gray-500 hover:text-gray-700'
+          } transition-colors`}
+        >
+          Pendientes ({pendingTutorials.length})
         </button>
       </div>
 
@@ -455,9 +482,9 @@ const [tutorialFormData, setTutorialFormData] = useState({
                   <td className="px-6 py-4 text-sm text-gray-500">{tutorial.categories.join(', ')}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      tutorial.status === 'published' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
+                      tutorial.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'
                     }`}>
-                      {tutorial.status === 'published' ? 'Publicado' : 'En revisión'}
+                      {tutorial.status === 'approved' ? 'Publicado' : 'En revisión'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -493,6 +520,91 @@ const [tutorialFormData, setTutorialFormData] = useState({
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {activeTab === 'pending-tutorials' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                {["ID", "Título", "Autor", "Categorías", "Vista Previa", "Acciones"].map((header) => (
+                  <th key={header} className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {pendingTutorials.map(tutorial => (
+                <tr key={tutorial.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 text-sm text-gray-500 font-mono">{tutorial.id}</td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    <div className="flex items-center">
+                      {tutorial.lastImage && (
+                        <img 
+                          src={`data:${tutorial.lastImage.type};base64,${tutorial.lastImage.contentBase64}`}
+                          alt="Miniatura"
+                          className="w-12 h-12 object-cover rounded mr-3"
+                        />
+                      )}
+                      {tutorial.title}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    <div className="flex flex-col">
+                      <span className="font-medium">{tutorial.author.name}</span>
+                      <span className="text-xs text-gray-400">{tutorial.author.email}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    <div className="flex flex-wrap gap-2">
+                      {tutorial.categories.map(category => (
+                        <span 
+                          key={category}
+                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
+                        >
+                          {category}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    {tutorial.lastImage && (
+                      <img
+                        src={`data:${tutorial.lastImage.type};base64,${tutorial.lastImage.contentBase64}`}
+                        alt="Vista previa"
+                        className="w-24 h-16 object-cover rounded-lg shadow-sm"
+                      />
+                    )}
+                  </td>
+                  <td className="px-6 py-4 space-x-3">
+                    <button 
+                      onClick={() => handleApproveTutorial(tutorial.id)}
+                      className="text-green-600 hover:text-green-800"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                      </svg>
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteTutorial(tutorial.id)}
+                      className="text-red-600 hover:text-red-800"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/>
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {pendingTutorials.length === 0 && (
+            <div className="p-6 text-center text-gray-500">
+              No hay tutoriales pendientes de aprobación
+            </div>
+          )}
         </div>
       )}
 
@@ -817,5 +929,3 @@ const [tutorialFormData, setTutorialFormData] = useState({
     </div>
   );
 }
-
-
