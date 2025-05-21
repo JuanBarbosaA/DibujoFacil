@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
+  const [achievements, setAchievements] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,6 +30,27 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    const fetchAchievements = async () => {
+      if (!user?.id) return;
+
+      try {
+        const res = await fetch(`http://localhost:5054/api/user/${user.id}/achievements`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        if (!res.ok) throw new Error('Error al obtener logros');
+        const data = await res.json();
+        setAchievements(data);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchAchievements();
+  }, [user]);
 
   if (error) return <p className="text-red-500 text-center p-4">{error}</p>;
   if (!user) return <p className="text-center p-4">Cargando...</p>;
@@ -60,7 +82,7 @@ export default function ProfilePage() {
           </div>
           <Logout className="absolute top-0 right-0" />
         </div>
-  
+
         <Link
           to="/createTutorial"
           className="mt-4 inline-block bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 transition-colors"
@@ -68,12 +90,13 @@ export default function ProfilePage() {
           Crear Tutorial
         </Link>
       </div>
-  
+
+      {/* SECCIÓN TUTORIALES */}
       <div>
         <h3 className="text-2xl font-semibold text-gray-800 mb-6">
           Tus Tutoriales ({user.tutorials?.length || 0})
         </h3>
-  
+
         {user.tutorials?.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2">
             {user.tutorials.map(tutorial => (
@@ -89,7 +112,7 @@ export default function ProfilePage() {
                     Editar
                   </button>
                 </div>
-  
+
                 {tutorial.lastImage && (
                   <div className="mb-4 text-center">
                     <img
@@ -99,16 +122,16 @@ export default function ProfilePage() {
                     />
                   </div>
                 )}
-  
+
                 <h4 className="text-xl font-semibold text-gray-800 mb-2">{tutorial.title}</h4>
                 <p className="text-gray-600 mb-4 line-clamp-3">{tutorial.description}</p>
-  
+
                 <div className="flex gap-4 items-center text-sm text-gray-500 mb-4">
                   <div className="flex items-center">
                     <span className="mr-1">📝</span>
                     {tutorial.commentCount}
                   </div>
-  
+
                   <div className="flex items-center">
                     <span className="mr-1">⭐</span>
                     {tutorial.averageRating?.toFixed(1) || '0.0'}
@@ -117,7 +140,7 @@ export default function ProfilePage() {
                     </span>
                   </div>
                 </div>
-  
+
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-500">
                     {new Date(tutorial.publicationDate).toLocaleDateString('es-ES', {
@@ -128,7 +151,7 @@ export default function ProfilePage() {
                       minute: '2-digit'
                     })}
                   </span>
-  
+
                   <span
                     className={`px-2 py-1 rounded-md text-sm ${
                       tutorial.status === 'pending'
@@ -156,7 +179,39 @@ export default function ProfilePage() {
           </div>
         )}
       </div>
+
+      {/* SECCIÓN LOGROS */}
+      <div className="mt-12">
+  <h3 className="text-2xl font-semibold text-gray-800 mb-6 flex items-center gap-2">
+  Logros obtenidos <span className="">({achievements.length})</span>
+  </h3>
+
+  {achievements.length > 0 ? (
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {achievements.map((a) => (
+        <div
+          key={a.id}
+          className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition duration-200"
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <span className="text-3xl">🏆</span>
+            <h4 className="text-lg font-semibold text-gray-800">{a.name}</h4>
+          </div>
+          <p className="text-gray-700 mb-2">{a.description}</p>
+          <p className="text-xs text-gray-500">
+            Obtenido el:{' '}
+            <span className="font-medium">
+              {new Date(a.obtainedDate).toLocaleDateString('es-ES')}
+            </span>
+          </p>
+        </div>
+      ))}
+    </div>
+  ) : (
+    <p className="text-gray-500 italic">Aún no has obtenido logros.</p>
+  )}
+</div>
+
     </div>
   );
-  
 }

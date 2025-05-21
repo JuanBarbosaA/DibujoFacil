@@ -9,7 +9,7 @@ namespace backend.Utilities
         private const string Host = "smtp.gmail.com";
         private const int Port = 587;
         private const string User = "dibujofacil646@gmail.com";
-        private const string AppPassword = "lrmx igwb eokm temj"; // Tu contraseña de aplicación
+        private const string AppPassword = "lrmx igwb eokm temj"; 
         private const bool EnableSsl = true;
 
         public EmailManager()
@@ -21,6 +21,17 @@ namespace backend.Utilities
                 UseDefaultCredentials = false,
                 Credentials = new NetworkCredential(User, AppPassword)
             };
+        }
+
+        public void SendEmail(string to, string subject, string body, bool isHtml = false)
+        {
+            var mail = new MailMessage(User, to, subject, body)
+            {
+                IsBodyHtml = isHtml
+            };
+
+            _client.Send(mail);
+            mail.Dispose();
         }
 
         public void SendPasswordResetEmail(string toEmail, string resetToken)
@@ -58,6 +69,20 @@ namespace backend.Utilities
 
             _client.Send(mail);
             mail.Dispose();
+        }
+
+
+        public void SendVerificationEmail(string toEmail, string token)
+        {
+            var verificationLink = $"http://localhost:5173/verify-email?token={token}";
+            var body = $@"
+        <h1>Verifica tu cuenta</h1>
+        <p>Haz clic en el enlace para completar tu registro:</p>
+        <a href='{verificationLink}'>Verificar cuenta</a>
+        <p><small>Este enlace expira en 24 horas</small></p>
+    ";
+
+            SendEmail(toEmail, "Verifica tu cuenta - DibujoFácil", body, true);
         }
     }
 }

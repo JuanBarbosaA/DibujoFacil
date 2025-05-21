@@ -10,6 +10,7 @@ import AdminPage from "./pages/admin/page";
 import TutorialsPage from "./pages/tutorials/page";
 import ForgotPassword from "./pages/forgotPassword/page";
 import ResetPassword from "./pages/resetPassword/page";
+import VerifyEmail from "./pages/verifyEmail/page";
 export default function App() {
   return(
     <Router>
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/verify-email" element={<VerifyEmail/>} />
       </Routes>
     </Router>
   )

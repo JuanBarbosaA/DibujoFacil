@@ -475,6 +475,7 @@ public async Task<IActionResult> UpdateTutorialContents(
 
                 var tutorial = await _context.Tutorial
                     .Include(t => t.Author)
+                        .ThenInclude(a => a.UserAchievements)
                     .FirstOrDefaultAsync(t => t.Id == id);
 
                 if (tutorial == null) return NotFound("Tutorial no encontrado");
@@ -482,17 +483,24 @@ public async Task<IActionResult> UpdateTutorialContents(
                 if (tutorial.Status == "pending")
                 {
                     tutorial.Author.Points += 200;
+
+                    var newAchievements = await CheckAndAssignAchievements(tutorial.Author);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    return Ok(new
+                    {
+                        Message = "Tutorial aprobado exitosamente",
+                        PointsAdded = 200,
+                        NewAchievements = newAchievements
+                    });
                 }
 
-                tutorial.Status = "approved";
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return Ok(new
-                {
-                    Message = "Tutorial aprobado exitosamente",
-                    PointsAdded = 200
-                });
+                return Ok(new { Message = "Tutorial ya estaba aprobado" });
             }
             catch (Exception ex)
             {
@@ -503,6 +511,34 @@ public async Task<IActionResult> UpdateTutorialContents(
                     Error = ex.Message
                 });
             }
+        }
+
+        private async Task<List<string>> CheckAndAssignAchievements(User user)
+        {
+            var milestones = new[] { 1000, 2000, 3000 };
+            var unlockedAchievements = new List<string>();
+
+            foreach (var milestone in milestones)
+            {
+                if (user.Points >= milestone)
+                {
+                    var achievement = await _context.Achievements
+                        .FirstOrDefaultAsync(a => a.RequiredPoints == milestone);
+
+                    if (achievement != null &&
+                        !user.UserAchievements.Any(ua => ua.AchievementId == achievement.Id))
+                    {
+                        user.UserAchievements.Add(new UserAchievement
+                        {
+                            AchievementId = achievement.Id,
+                            ObtainedDate = DateTime.UtcNow
+                        });
+                        unlockedAchievements.Add(achievement.Name);
+                    }
+                }
+            }
+
+            return unlockedAchievements;
         }
 
     }

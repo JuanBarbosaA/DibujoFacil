@@ -105,6 +105,11 @@ namespace backend.Controllers
                     return Unauthorized("Credenciales inválidas");
                 }
 
+                if (user.Status != "active") 
+                {
+                    return Unauthorized("Por favor verifica tu correo electrónico");
+                }
+
                 var isPasswordValid = EncryptUtility.VerifyPassword(loginDto.Password, user.PasswordHash);
 
                 if (!isPasswordValid)
@@ -175,29 +180,30 @@ namespace backend.Controllers
                 {
                     Email = registerDto.Email,
                     PasswordHash = EncryptUtility.HashPassword(registerDto.Password),
-                    Name = registerDto.Name, 
+                    Name = registerDto.Name,
                     RoleId = 2,
                     RegistrationDate = DateTime.UtcNow,
-                    Status = "active",
+                    Status = "pending", 
                     Points = 0
                 };
 
                 _context.Users.Add(user);
                 await _context.SaveChangesAsync();
 
-                var token = JwtUtility.GenerateToken(
+                var verificationToken = JwtUtility.GenerateStateToken(
                     email: user.Email,
-                    userId: user.Id,
                     jwtKey: _configuration["JwtSettings:Key"],
-                    jwtIssuer: _configuration["JwtSettings:Issuer"],
-                    jwtAudience: _configuration["JwtSettings:Audience"]);
+                    claimType: "email_verification",
+                    expirationMinutes: 1440 
+                );
 
-                return Ok(new AuthResponseDto
+                _emailManager.SendVerificationEmail(user.Email, verificationToken);
+
+                return Ok(new
                 {
-                    Token = token,
-                    Expiration = DateTime.UtcNow.AddMinutes(int.Parse(_configuration["JwtSettings:ExpirationInMinutes"])),
-                    Email = user.Email,
-                    UserId = user.Id.ToString()
+                    Message = "Registro exitoso. Por favor verifica tu correo electrónico.",
+                    UserId = user.Id,
+                    Email = user.Email
                 });
             }
             catch (DbUpdateException dbEx)
@@ -221,6 +227,38 @@ namespace backend.Controllers
         }
 
 
+        [HttpPost("verify-email")]
+        [AllowAnonymous]
+        public async Task<IActionResult> VerifyEmail([FromBody] VerifyEmailDto dto)
+        {
+            try
+            {
+                var principal = JwtUtility.ValidateToken(
+                    dto.Token,
+                    _configuration["JwtSettings:Key"],
+                    expectedClaim: "email_verification"
+                );
+
+                var email = principal.FindFirst(ClaimTypes.Email)?.Value;
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+                if (user == null) return NotFound("Usuario no encontrado");
+                if (user.Status == "active") return BadRequest("El correo ya fue verificado");
+
+                user.Status = "active"; 
+                await _context.SaveChangesAsync();
+
+                return Ok(new { Message = "¡Correo verificado exitosamente!" });
+            }
+            catch (SecurityTokenExpiredException)
+            {
+                return BadRequest("El enlace de verificación ha expirado");
+            }
+            catch (Exception)
+            {
+                return BadRequest("Token inválido");
+            }
+        }
 
         [HttpPost("logout")]
         public IActionResult Logout()
