@@ -8,6 +8,8 @@ import CreateTutorialPage from "./pages/createTutorial/page";
 import TutorialPage from "./pages/tutorial/page";
 import AdminPage from "./pages/admin/page";
 import TutorialsPage from "./pages/tutorials/page";
+import ForgotPassword from "./pages/forgotPassword/page";
+import ResetPassword from "./pages/resetPassword/page";
 export default function App() {
   return(
     <Router>
@@ -21,6 +23,8 @@ export default function App() {
         <Route path="/tutorial/:id" element={<TutorialPage/>}/>
         <Route path="/edit-tutorial/:id" element={<CreateTutorialPage />} />
         <Route path="/admin" element={<AdminPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
     </Router>
   )

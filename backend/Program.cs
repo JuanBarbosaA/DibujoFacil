@@ -50,6 +50,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSingleton<EmailManager>();
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "DibujoFácil API", Version = "v1" });

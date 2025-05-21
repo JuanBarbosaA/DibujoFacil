@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -17,14 +18,68 @@ namespace backend.Controllers
         private readonly DbDibujofacilContext _context;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
+        private readonly EmailManager _emailManager;
 
-        public AuthController(DbDibujofacilContext context,
-                            IConfiguration configuration,
-                            ILogger<AuthController> logger)
+        public AuthController(
+            DbDibujofacilContext context,
+            IConfiguration configuration,
+            ILogger<AuthController> logger,
+            EmailManager emailManager) 
         {
             _context = context;
             _configuration = configuration;
             _logger = logger;
+            _emailManager = emailManager;
+        }
+
+        [HttpPost("forgot-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+            if (user == null) return Ok(); 
+
+            var token = JwtUtility.GeneratePasswordResetToken(
+                email: user.Email,
+                jwtKey: _configuration["JwtSettings:Key"],
+                expirationMinutes: 60
+            );
+
+            _emailManager.SendPasswordResetEmail(user.Email, token);
+
+            return Ok(new { Message = "Se ha enviado un enlace de recuperación a tu correo" });
+        }
+
+        [HttpPost("reset-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            try
+            {
+                var principal = JwtUtility.ValidatePasswordResetToken(
+                    token: dto.Token,
+                    jwtKey: _configuration["JwtSettings:Key"]
+                );
+
+                var email = principal.FindFirst(ClaimTypes.Email)?.Value;
+                if (string.IsNullOrEmpty(email)) return BadRequest("Token inválido");
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+                if (user == null) return BadRequest("Usuario no encontrado");
+
+                user.PasswordHash = EncryptUtility.HashPassword(dto.NewPassword);
+                await _context.SaveChangesAsync();
+
+                return Ok(new { Message = "Contraseña actualizada exitosamente" });
+            }
+            catch (SecurityTokenExpiredException)
+            {
+                return BadRequest("El enlace ha expirado");
+            }
+            catch (Exception)
+            {
+                return BadRequest("Token inválido");
+            }
         }
 
         [HttpPost("login")]

@@ -36,6 +36,44 @@ namespace backend.Utilities
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+
+        public static string GeneratePasswordResetToken(string email, string jwtKey, int expirationMinutes)
+        {
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+            new Claim(ClaimTypes.Email, email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        };
+
+            var token = new JwtSecurityToken(
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(expirationMinutes),
+                signingCredentials: credentials
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public static ClaimsPrincipal ValidatePasswordResetToken(string token, string jwtKey)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            return tokenHandler.ValidateToken(token, validationParameters, out _);
+        }
     }
 
 }
