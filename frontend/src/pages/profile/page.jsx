@@ -10,7 +10,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token'); 
       try {
         const res = await fetch('http://localhost:5054/api/User/profile', {
           method: 'GET',
