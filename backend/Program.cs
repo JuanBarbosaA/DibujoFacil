@@ -1,4 +1,6 @@
+using backend.Repositories;
 using backend.Repositories.Models;
+using backend.Services;
 using backend.Utilities;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +52,15 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<AchievementRepository>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<TutorialsRepository>();
+
+builder.Services.AddScoped<AdminRepository>();
+builder.Services.AddScoped<AdminService>();
+
 builder.Services.AddSingleton<EmailManager>();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -84,7 +95,6 @@ builder.Services.AddSwaggerGen(c =>
 
     c.OperationFilter<SwaggerFileUploadFilter>();
 });
-
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())

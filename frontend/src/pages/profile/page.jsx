@@ -36,7 +36,7 @@ export default function ProfilePage() {
       if (!user?.id) return;
 
       try {
-        const res = await fetch(`http://localhost:5054/api/user/${user.id}/achievements`, {
+        const res = await fetch(`http://localhost:5054/api/user/achievements`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

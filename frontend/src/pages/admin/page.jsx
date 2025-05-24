@@ -88,6 +88,27 @@ export default function AdminPage() {
   }, [navigate]);
 
   useEffect(() => {
+    if (editingTutorial) {
+      setTutorialFormData({
+        title: editingTutorial.title,
+        status: editingTutorial.status,
+        difficulty: editingTutorial.difficulty,
+        categoryIds: editingTutorial.categoryIds
+      });
+      setImagePreviews(
+        editingTutorial.tutorialContents
+          ?.filter(c => c.type.startsWith('image/'))
+          .map(c => ({
+            id: c.id.toString(),
+            type: c.type,
+            contentBase64: c.contentBase64,
+            isNew: false
+          })) || []
+      );
+    }
+  }, [editingTutorial]);
+
+  useEffect(() => {
     setLoading(true);
     fetchData();
   }, [fetchData]);
@@ -133,7 +154,7 @@ export default function AdminPage() {
     const token = localStorage.getItem('token');
     
     try {
-      const metadataResponse = await fetch(`http://localhost:5054/api/admin/tutorials/${editingTutorial.id}`, {
+      const metadataResponse = await fetch(`http://localhost:5054/api/admin/tutorials/${editingTutorial.id}/contents`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -383,7 +404,7 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors shadow-sm"
+              className="px-4 py-2 bg-blue-400 cursor-pointer text-white rounded-lg hover:bg-primary-600 transition-colors shadow-sm"
             >
               + Nuevo Usuario
             </button>
@@ -393,7 +414,7 @@ export default function AdminPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  {["ID", "Nombre", "Email", "Registro", "Estado", "Rol", "Puntos", "Tutoriales", "Acciones"].map((header) => (
+                  {["ID", "Nombre", "Email", "Registro", "Estado", "Puntos", "Tutoriales", "Acciones"].map((header) => (
                     <th key={header} className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                       {header}
                     </th>
@@ -418,7 +439,6 @@ export default function AdminPage() {
                         {user.status === 'active' ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{user.role}</td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-3 py-1 rounded-full bg-purple-100 text-purple-800 text-sm">
                         {user.points}
@@ -433,7 +453,7 @@ export default function AdminPage() {
                       <button onClick={() => setEditingUser(user)} className="text-primary-600 hover:text-primary-800 font-medium">
                         Editar
                       </button>
-                      <button onClick={() => handleDelete(user.id)} className="text-red-600 hover:text-red-800 font-medium">
+                      <button onClick={() => handleDelete(user.id)} className="text-red-600 cursor-pointer hover:text-red-800 font-medium">
                         Eliminar
                       </button>
                     </td>

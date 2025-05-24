@@ -25,7 +25,7 @@ export default function RegisterPage() {
     } else {
       const data = await response.json();
       localStorage.setItem('token', data.token); 
-      navigate('/tutorials'); 
+      navigate('/login'); 
     }
   };
 
