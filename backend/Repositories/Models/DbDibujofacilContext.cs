@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using backend.Dtos;
 using Microsoft.EntityFrameworkCore;
 
 namespace backend.Repositories.Models;
@@ -31,9 +32,10 @@ public partial class DbDibujofacilContext : DbContext
     public virtual DbSet<UserAchievement> UserAchievements { get; set; }
     public virtual DbSet<TutorialCategory> TutorialCategories { get; set; }
 
-
+    public virtual DbSet<UserStatisticsDto> UserStatistics { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+
         modelBuilder.Entity<TutorialCategory>(entity =>
         {
             entity.HasKey(e => new { e.TutorialId, e.CategoryId });
@@ -405,6 +407,11 @@ public partial class DbDibujofacilContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK__user_achi__user___5DCAEF64");
+        });
+
+        modelBuilder.Entity<UserStatisticsDto>(entity =>
+        {
+            entity.HasNoKey().ToView(null); 
         });
 
         OnModelCreatingPartial(modelBuilder);

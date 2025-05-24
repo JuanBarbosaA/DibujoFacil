@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using backend.Repositories.Models;
 
@@ -11,9 +12,11 @@ using backend.Repositories.Models;
 namespace backend.Migrations
 {
     [DbContext(typeof(DbDibujofacilContext))]
-    partial class DbDibujofacilContextModelSnapshot : ModelSnapshot
+    [Migration("20250524060643_AddApprovedTutorialTrigger")]
+    partial class AddApprovedTutorialTrigger
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -35,33 +38,6 @@ namespace backend.Migrations
                     b.HasIndex("TutorialsId");
 
                     b.ToTable("CategoryTutorial");
-                });
-
-            modelBuilder.Entity("backend.Dtos.UserStatisticsDto", b =>
-                {
-                    b.Property<double?>("AverageRating")
-                        .HasColumnType("float");
-
-                    b.Property<int>("CommentCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("TutorialCount")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.ToTable((string)null);
-
-                    b.ToView(null, (string)null);
                 });
 
             modelBuilder.Entity("backend.Repositories.Models.Achievement", b =>

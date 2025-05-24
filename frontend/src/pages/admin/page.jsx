@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logout from '../../Components/logout';
+import StatisticsButton from '../../Components/StatisticsButton';
 
 export default function AdminPage() {
   const [users, setUsers] = useState([]);
@@ -408,6 +409,7 @@ export default function AdminPage() {
             >
               + Nuevo Usuario
             </button>
+            <StatisticsButton/>
           </div>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

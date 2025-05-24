@@ -57,7 +57,7 @@ builder.Services.AddScoped<AchievementRepository>();
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<TutorialsRepository>();
-
+//builder.Services.AddScoped<TutorialsService>();
 builder.Services.AddScoped<AdminRepository>();
 builder.Services.AddScoped<AdminService>();
 

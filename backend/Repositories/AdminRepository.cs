@@ -286,53 +286,50 @@ namespace backend.Repositories
                 })
                 .ToListAsync();
         }
+        // En AdminRepository.cs, MODIFICAR el método ApproveTutorial:
 
         public async Task<object> ApproveTutorial(int tutorialId)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
-            var tutorial = await _context.Tutorial
-                .Include(t => t.Author)
-                .ThenInclude(a => a.UserAchievements)
-                .FirstOrDefaultAsync(t => t.Id == tutorialId);
-
-            if (tutorial.Status == "pending")
+            try
             {
-                tutorial.Status = "approved";
-                tutorial.Author.Points += 200;
-                var newAchievements = new List<string>();
+                var tutorial = await _context.Tutorial
+                    .Include(t => t.Author)
+                    .FirstOrDefaultAsync(t => t.Id == tutorialId); // <- Quitar ThenInclude de UserAchievements
 
-                var milestones = new[] { 1000, 2000, 3000 };
-                foreach (var milestone in milestones)
+                if (tutorial == null)
+                    throw new Exception("Tutorial no encontrado");
+
+                if (tutorial.Status == "pending")
                 {
-                    if (tutorial.Author.Points >= milestone)
-                    {
-                        var achievement = await _context.Achievements
-                            .FirstOrDefaultAsync(a => a.RequiredPoints == milestone);
+                    // Paso 1: Actualizar estado usando SQL directo (esto activará el trigger)
+                    await _context.Database.ExecuteSqlInterpolatedAsync(
+                        $"UPDATE Tutorial SET Status = 'approved' WHERE Id = {tutorialId}");
 
-                        if (achievement != null && !tutorial.Author.UserAchievements.Any(ua => ua.AchievementId == achievement.Id))
-                        {
-                            tutorial.Author.UserAchievements.Add(new UserAchievement
-                            {
-                                AchievementId = achievement.Id,
-                                ObtainedDate = DateTime.UtcNow
-                            });
-                            newAchievements.Add(achievement.Name);
-                        }
-                    }
+                    // Paso 2: Recargar el tutorial para obtener cambios
+                    await _context.Entry(tutorial).ReloadAsync();
+
+                    // Paso 3: Confirmar transacción
+                    await transaction.CommitAsync();
+
+                    return new { Message = "Tutorial aprobado exitosamente" }; // <- Eliminar puntos y logros
                 }
 
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return new
-                {
-                    Message = "Tutorial aprobado exitosamente",
-                    PointsAdded = 200,
-                    NewAchievements = newAchievements
-                };
+                return new { Message = "Tutorial ya estaba aprobado" };
             }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
 
-            return new { Message = "Tutorial ya estaba aprobado" };
+        public async Task<List<UserStatisticsDto>> GetUserStatistics()
+        {
+            return await _context.UserStatistics
+                .FromSqlRaw("EXEC GetUserStatisticsV2")
+                .AsNoTracking()
+                .ToListAsync();
         }
     }
 }

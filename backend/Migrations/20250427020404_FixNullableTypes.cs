@@ -11,20 +11,20 @@ namespace backend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "achievement",
-                columns: table => new
-                {
-                    id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    name = table.Column<string>(type: "varchar(100)", unicode: false, maxLength: 100, nullable: false),
-                    description = table.Column<string>(type: "text", nullable: true),
-                    required_points = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK__achievem__3213E83F121C4DCE", x => x.id);
-                });
+            //migrationBuilder.CreateTable(
+            //    name: "achievement",
+            //    columns: table => new
+            //    {
+            //        id = table.Column<int>(type: "int", nullable: false)
+            //            .Annotation("SqlServer:Identity", "1, 1"),
+            //        name = table.Column<string>(type: "varchar(100)", unicode: false, maxLength: 100, nullable: false),
+            //        description = table.Column<string>(type: "text", nullable: true),
+            //        required_points = table.Column<int>(type: "int", nullable: false)
+            //    },
+            //    constraints: table =>
+            //    {
+            //        table.PrimaryKey("PK__achievem__3213E83F121C4DCE", x => x.id);
+            //    });
 
             migrationBuilder.CreateTable(
                 name: "category",
@@ -495,8 +495,8 @@ namespace backend.Migrations
             migrationBuilder.DropTable(
                 name: "tutorial");
 
-            migrationBuilder.DropTable(
-                name: "achievement");
+            //migrationBuilder.DropTable(
+            //    name: "achievement");
 
             migrationBuilder.DropTable(
                 name: "user");

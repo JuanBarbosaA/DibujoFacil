@@ -1,5 +1,6 @@
 ﻿using backend.Dtos;
 using backend.Services;
+using ClosedXML.Excel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -93,7 +94,52 @@ namespace backend.Controllers
             return Ok(await _adminService.ApproveTutorial(adminId, id));
         }
 
+        [HttpGet("users/statistics/export")]
+        public async Task<IActionResult> ExportUserStatistics()
+        {
+            var adminId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            var stats = await _adminService.GetUserStatistics(adminId);
 
+            using var workbook = new XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Estadísticas de Usuarios");
 
+            // Encabezados
+            worksheet.Cell(1, 1).Value = "ID Usuario";
+            worksheet.Cell(1, 2).Value = "Nombre";
+            worksheet.Cell(1, 3).Value = "Email";
+            worksheet.Cell(1, 4).Value = "Tutoriales";
+            worksheet.Cell(1, 5).Value = "Comentarios";
+            worksheet.Cell(1, 6).Value = "Rating Promedio";
+
+            // Estilo encabezados
+            var headerRange = worksheet.Range("A1:F1");
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+            headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+            // Datos
+            int row = 2;
+            foreach (var stat in stats)
+            {
+                worksheet.Cell(row, 1).Value = stat.UserId;
+                worksheet.Cell(row, 2).Value = stat.Name;
+                worksheet.Cell(row, 3).Value = stat.Email;
+                worksheet.Cell(row, 4).Value = stat.TutorialCount;
+                worksheet.Cell(row, 5).Value = stat.CommentCount;
+                worksheet.Cell(row, 6).Value = stat.AverageRating;
+                row++;
+            }
+
+            // Autoajustar columnas
+            worksheet.Columns().AdjustToContents();
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            stream.Position = 0;
+
+            return File(stream.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "UserStatistics.xlsx");
+        }
     }
-}
+    }

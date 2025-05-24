@@ -75,5 +75,11 @@ namespace backend.Services
             await _adminRepository.ValidateAdmin(adminId);
             return await _adminRepository.ApproveTutorial(tutorialId);
         }
+
+        public async Task<List<UserStatisticsDto>> GetUserStatistics(int adminId)
+        {
+            await _adminRepository.ValidateAdmin(adminId);
+            return await _adminRepository.GetUserStatistics();
+        }
     }
 }
