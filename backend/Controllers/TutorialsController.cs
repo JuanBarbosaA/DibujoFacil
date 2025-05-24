@@ -12,6 +12,9 @@ using iTextSharp.text.pdf;
 
 namespace backend.Controllers
 {
+    /// <summary>
+    /// Controlador para gestionar operaciones relacionadas con tutoriales.
+    /// </summary>
     [Route("api/[controller]")]
     [ApiController]
     public class TutorialsController : ControllerBase
@@ -19,6 +22,11 @@ namespace backend.Controllers
         private readonly DbDibujofacilContext _context;
         private readonly ILogger<TutorialsController> _logger;
 
+        /// <summary>
+        /// Inicializa una nueva instancia del controlador <see cref="TutorialsController"/>.
+        /// </summary>
+        /// <param name="context">Contexto de la base de datos.</param>
+        /// <param name="logger">Logger para registrar información y errores.</param>
         public TutorialsController(
             DbDibujofacilContext context,
             ILogger<TutorialsController> logger)
@@ -26,12 +34,20 @@ namespace backend.Controllers
             _context = context;
             _logger = logger;
         }
+
+        /// <summary>
+        /// Obtiene una lista filtrada de tutoriales disponibles para el usuario autenticado.
+        /// </summary>
+        /// <param name="search">Texto para búsqueda en título y descripción.</param>
+        /// <param name="categoryId">Identificador opcional de categoría para filtrar tutoriales.</param>
+        /// <param name="difficulty">Nivel de dificultad para filtrar tutoriales.</param>
+        /// <returns>Lista de tutoriales que cumplen con los criterios de búsqueda y autorización.</returns>
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetTutorials(
-    [FromQuery] string search = "",
-    [FromQuery] int? categoryId = null,
-    [FromQuery] string difficulty = "")
+            [FromQuery] string search = "",
+            [FromQuery] int? categoryId = null,
+            [FromQuery] string difficulty = "")
         {
             try
             {
@@ -40,7 +56,7 @@ namespace backend.Controllers
 
                 if (user == null) return NotFound("Usuario no encontrado");
 
-                List<string> allowedDifficulties = user.RoleId == 1 // Si es admin
+                List<string> allowedDifficulties = user.RoleId == 1
                     ? new List<string> { "beginner", "intermediate", "advanced" }
                     : GetAllowedDifficulties(user.Points ?? 0);
 
@@ -62,7 +78,7 @@ namespace backend.Controllers
                     .Include(t => t.Ratings)
                         .ThenInclude(r => r.User)
                     .Where(t => allowedDifficulties.Contains(t.Difficulty.ToLower())
-                && t.Status == "approved")
+                        && t.Status == "approved")
                     .AsNoTracking();
 
                 if (!string.IsNullOrEmpty(search))
@@ -150,6 +166,11 @@ namespace backend.Controllers
             }
         }
 
+        /// <summary>
+        /// Determina los niveles de dificultad permitidos según los puntos del usuario.
+        /// </summary>
+        /// <param name="points">Puntos acumulados del usuario.</param>
+        /// <returns>Lista de niveles de dificultad permitidos.</returns>
         private List<string> GetAllowedDifficulties(int points)
         {
             if (points < 1000) return new List<string> { "beginner" };
@@ -157,9 +178,10 @@ namespace backend.Controllers
             return new List<string> { "beginner", "intermediate", "advanced" };
         }
 
-
-      
-
+        /// <summary>
+        /// Obtiene todas las categorías disponibles para los tutoriales.
+        /// </summary>
+        /// <returns>Lista de categorías.</returns>
         [HttpGet("categories")]
         public async Task<IActionResult> GetCategories()
         {
@@ -178,6 +200,11 @@ namespace backend.Controllers
             }
         }
 
+        /// <summary>
+        /// Crea un nuevo tutorial con sus contenidos y categorías asociadas.
+        /// </summary>
+        /// <param name="tutorialDto">Datos del tutorial a crear, recibidos en formulario.</param>
+        /// <returns>Respuesta con la confirmación de creación y el ID del tutorial creado.</returns>
         [Authorize]
         [HttpPost("create")]
         public async Task<IActionResult> CreateTutorial(
@@ -256,9 +283,13 @@ namespace backend.Controllers
             }
         }
 
-
+        /// <summary>
+        /// Obtiene un tutorial completo por su identificador.
+        /// </summary>
+        /// <param name="id">Identificador del tutorial.</param>
+        /// <returns>Tutorial completo con detalles y relaciones.</returns>
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetTutorialById(int id)
+        public async Task<IActionResult> GetTutorial(int id)
         {
             try
             {
@@ -275,9 +306,7 @@ namespace backend.Controllers
                     .FirstOrDefaultAsync(t => t.Id == id);
 
                 if (tutorial == null)
-                {
                     return NotFound("Tutorial no encontrado");
-                }
 
                 var tutorialDto = new TutorialFullDto
                 {
@@ -295,12 +324,11 @@ namespace backend.Controllers
                         Email = tutorial.Author.Email,
                         AvatarUrl = tutorial.Author.AvatarUrl
                     },
-                    Categories = tutorial.TutorialCategories
-                        .Select(tc => new CategoryDto
-                        {
-                            Id = tc.Category.Id,
-                            Name = tc.Category.Name
-                        }).ToList(),
+                    Categories = tutorial.TutorialCategories.Select(tc => new CategoryDto
+                    {
+                        Id = tc.Category.Id,
+                        Name = tc.Category.Name
+                    }).ToList(),
                     Contents = tutorial.TutorialContents.Select(tc => new TutorialContentDto
                     {
                         Id = tc.Id,
@@ -334,9 +362,7 @@ namespace backend.Controllers
                             Name = r.User.Name
                         }
                     }).ToList(),
-                    AverageRating = tutorial.Ratings.Any()
-                        ? (double)tutorial.Ratings.Average(r => r.Score)
-                        : 0
+                    AverageRating = tutorial.Ratings.Any() ? (double)tutorial.Ratings.Average(r => r.Score) : 0
                 };
 
                 return Ok(tutorialDto);
@@ -351,275 +377,5 @@ namespace backend.Controllers
                 });
             }
         }
-
-
-
-        [Authorize]
-        [HttpPost("{id}/rate")]
-        public async Task<IActionResult> RateTutorial(int id, [FromBody] RatingCreationDto ratingDto)
-        {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-
-                var existingRating = await _context.Ratings
-                    .FirstOrDefaultAsync(r => r.TutorialId == id && r.UserId == userId);
-
-                if (existingRating != null)
-                {
-                    return Conflict("Ya has calificado este tutorial");
-                }
-
-                var rating = new Rating
-                {
-                    TutorialId = id,
-                    UserId = userId,
-                    Score = ratingDto.Score,
-                    Date = DateTime.UtcNow
-                };
-
-                _context.Ratings.Add(rating);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return Ok(new
-                {
-                    Message = "Calificación registrada exitosamente",
-                    RatingId = rating.Id
-                });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error registrando calificación");
-                return StatusCode(500, new
-                {
-                    Message = "Error al calificar el tutorial",
-                    Error = ex.Message
-                });
-            }
-        }
-
-
-        [Authorize]
-        [HttpPost("{id}/comment")]
-        public async Task<IActionResult> AddComment(int id, [FromBody] CommentCreationDto commentDto)
-        {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-
-                var tutorialExists = await _context.Tutorial.AnyAsync(t => t.Id == id);
-                if (!tutorialExists)
-                {
-                    return NotFound("Tutorial no encontrado");
-                }
-
-                var comment = new Comment
-                {
-                    TutorialId = id,
-                    UserId = userId,
-                    Comment1 = commentDto.Text,
-                    Date = DateTime.UtcNow,
-                    Edited = false
-                };
-
-                _context.Comments.Add(comment);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                var user = await _context.Users
-                    .AsNoTracking()
-                    .Select(u => new UserDto
-                    {
-                        Id = u.Id,
-                        Name = u.Name,
-                        AvatarUrl = u.AvatarUrl
-                    })
-                    .FirstOrDefaultAsync(u => u.Id == userId);
-
-                return CreatedAtAction(nameof(GetTutorialById), new { id }, new CommentDto
-                {
-                    Id = comment.Id,
-                    Text = comment.Comment1,
-                    Date = comment.Date,
-                    Edited = comment.Edited,
-                    User = user
-                });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error agregando comentario");
-                return StatusCode(500, new
-                {
-                    Message = "Error al agregar el comentario",
-                    Error = ex.Message
-                });
-            }
-        }
-
-        [HttpGet("{id}/comments")]
-        public async Task<IActionResult> GetPaginatedComments(
-            int id,
-            [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 4)
-             {
-                try
-                    {
-                        var query = _context.Comments
-                            .Where(c => c.TutorialId == id)
-                            .Include(c => c.User)
-                            .OrderByDescending(c => c.Date);
-
-                        var totalComments = await query.CountAsync();
-                        var comments = await query
-                                .Skip((page - 1) * pageSize)
-                        .Take(pageSize)
-                        .Select(c => new CommentDto
-                        {
-                            Id = c.Id,
-                            Text = c.Comment1,
-                            Date = c.Date,
-                            Edited = c.Edited,
-                            User = new UserDto
-                            {
-                                Id = c.User.Id,
-                                Name = c.User.Name,
-                                AvatarUrl = c.User.AvatarUrl
-                            }
-                        })
-                        .ToListAsync();
-
-                    return Ok(new
-                    {
-                        Comments = comments,
-                        TotalComments = totalComments,
-                        CurrentPage = page,
-                        TotalPages = (int)Math.Ceiling(totalComments / (double)pageSize),
-                        HasMore = page * pageSize < totalComments
-                    });
-            }
-            catch (Exception ex)
-            {
-                 _logger.LogError(ex, "Error obteniendo comentarios paginados");
-                 return StatusCode(500, "Error interno del servidor");
-             }
-        }
-
-
-        [HttpGet("download-pdf/{tutorialId}")]
-        public async Task<IActionResult> DownloadTutorialPdf(int tutorialId)
-        {
-            try
-            {
-                var tutorial = await _context.Tutorial
-                    .Include(t => t.TutorialContents)
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(t => t.Id == tutorialId);
-
-                if (tutorial == null) return NotFound("Tutorial no encontrado");
-
-                using var memoryStream = new MemoryStream();
-                var document = new iTextSharp.text.Document(PageSize.A4, 25, 25, 30, 30);
-                var writer = PdfWriter.GetInstance(document, memoryStream);
-
-                document.Open();
-
-                document.AddTitle(tutorial.Title);
-                document.AddCreator("DibujoFácil");
-
-                var orderedContents = tutorial.TutorialContents
-                    .OrderBy(c => c.Order)
-                    .ToList();
-
-                foreach (var content in orderedContents)
-                {
-                    if (content.Type.StartsWith("image/"))
-                    {
-                        using var imageStream = new MemoryStream(content.Content);
-                        var image = iTextSharp.text.Image.GetInstance(imageStream);
-                        image.Alignment = Element.ALIGN_CENTER;
-                        image.ScaleToFit(document.PageSize.Width - 50, document.PageSize.Height - 50);
-                        document.Add(image);
-                        document.NewPage();
-                    }
-                }
-
-                document.Close();
-
-                return File(memoryStream.ToArray(), "application/pdf",
-                    $"{tutorial.Title.Replace(" ", "_")}.pdf");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error generando PDF para tutorial {TutorialId}", tutorialId);
-                return StatusCode(500, "Error generando el PDF");
-            }
-        }
-
-
-        [Authorize]
-        [HttpPut("update/{id}")]
-        public async Task<IActionResult> UpdateTutorial(
-    int id,
-    [FromForm] TutorialCreationDto tutorialDto)
-        {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-
-                var tutorial = await _context.Tutorial
-                    .Include(t => t.TutorialCategories)
-                    .Include(t => t.TutorialContents)
-                    .FirstOrDefaultAsync(t => t.Id == id && t.AuthorId == userId);
-
-                if (tutorial == null) return NotFound("Tutorial no encontrado");
-
-                tutorial.Title = tutorialDto.Title;
-                tutorial.Description = tutorialDto.Description;
-                tutorial.Difficulty = tutorialDto.Difficulty;
-                tutorial.EstimatedDuration = tutorialDto.EstimatedDuration;
-                tutorial.Status = "pending";
-
-                _context.TutorialCategories.RemoveRange(tutorial.TutorialCategories);
-                _context.TutorialContents.RemoveRange(tutorial.TutorialContents);
-
-                foreach (var contentDto in tutorialDto.Contents)
-                {
-                    using var memoryStream = new MemoryStream();
-                    await contentDto.File.CopyToAsync(memoryStream);
-                    _context.TutorialContents.Add(new TutorialContent
-                    {
-                        TutorialId = tutorial.Id,
-                        Type = contentDto.File.ContentType,
-                        Content = memoryStream.ToArray(),
-                        Order = contentDto.Order,
-                        Title = contentDto.Title,
-                        Description = contentDto.Description
-                    });
-                }
-
-                var tutorialCategories = tutorialDto.CategoryIds.Select(cId =>
-                    new TutorialCategory { TutorialId = tutorial.Id, CategoryId = cId }
-                );
-                await _context.TutorialCategories.AddRangeAsync(tutorialCategories);
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                return Ok(new { Message = "Tutorial actualizado exitosamente" });
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Error actualizando tutorial");
-                return StatusCode(500, new { Message = "Error interno", Error = ex.Message });
-            }
-        }
-
     }
 }

@@ -13,8 +13,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 
-builder.Services.AddCors(opt => {
-    opt.AddPolicy("AllowReactApp", policy => {
+builder.Services.AddCors(opt =>
+{
+    opt.AddPolicy("AllowReactApp", policy =>
+    {
         policy.WithOrigins("http://localhost:5173")
               .AllowAnyMethod()
               .AllowAnyHeader();
@@ -52,6 +54,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<AchievementRepository>();
 builder.Services.AddScoped<UserService>();
@@ -62,9 +65,13 @@ builder.Services.AddScoped<AdminRepository>();
 builder.Services.AddScoped<AdminService>();
 
 builder.Services.AddSingleton<EmailManager>();
+
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "DibujoFácil API", Version = "v1" });
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    c.IncludeXmlComments(xmlPath);
     c.SchemaFilter<SwaggerRatingExampleFilter>();
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -74,7 +81,6 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-
     c.AddSecurityRequirement(new OpenApiSecurityRequirement()
     {
         {
@@ -92,9 +98,9 @@ builder.Services.AddSwaggerGen(c =>
             new List<string>()
         }
     });
-
     c.OperationFilter<SwaggerFileUploadFilter>();
 });
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -104,9 +110,13 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
 app.UseCors("AllowReactApp");
+
 app.UseAuthentication();
+
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();
